@@ -7,17 +7,13 @@ import type { Product, ProductStatus, Supplier, Settings } from '@/types'
 import type { ProductIntelligenceState, ResearchRun } from '@/types/intelligence'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { OpportunityScore } from './OpportunityScore'
 import { StatusBadge, ALL_STATUSES } from './StatusBadge'
 import { InlineEdit } from './InlineEdit'
 import { ScoreCard } from './ScoreCard'
 import { toast } from 'sonner'
 import { updateProduct, updateProductStatus, deleteProduct } from '@/lib/actions/products'
-import { formatCurrency } from '@/lib/utils/currency'
-import { calculateLandedCostPerUnit } from '@/lib/utils/calculator'
-import { AIIntelligenceHeader } from '@/components/intelligence/ai-intelligence-header'
 import { LiveResearchDrawer } from '@/components/intelligence/live-research-drawer'
 import { LandedCostWaterfall } from '@/components/intelligence/landed-cost-waterfall'
 import { WhatIfCalculator } from '@/components/intelligence/what-if-calculator'
@@ -32,12 +28,6 @@ import {
   RiExternalLinkLine,
   RiFireLine,
   RiBuilding4Line,
-  RiArrowRightLine,
-  RiCheckLine,
-  RiCloseLine,
-  RiShieldCheckLine,
-  RiMoneyDollarCircleLine,
-  RiBarChartLine,
   RiSparklingLine,
 } from '@remixicon/react'
 
@@ -62,8 +52,10 @@ export function ProductDetailClient({
   const [optimisticStatus, setOptimisticStatus] = useOptimistic(product.status)
 
   useEffect(() => {
-    setProduct(initialProduct)
+    const timer = setTimeout(() => setProduct(initialProduct), 0)
+    return () => clearTimeout(timer)
   }, [initialProduct])
+
 
   async function handleFieldUpdate(field: string, value: string) {
     const numericFields = [
@@ -218,11 +210,6 @@ export function ProductDetailClient({
     product.sellingPrice > 0 && product.landedCost > 0
       ? ((product.sellingPrice - product.landedCost) / product.sellingPrice) * 100
       : null
-
-  const profit =
-    product.sellingPrice > 0 && product.landedCost > 0
-      ? product.sellingPrice - product.landedCost
-      : 0
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-24 md:pb-8 space-y-6">
@@ -635,95 +622,6 @@ export function ProductDetailClient({
           </div>
         </TabsContent>
       </Tabs>
-    </div>
-  )
-}
-
-function FlowStep({
-  label,
-  value,
-  onEdit,
-  rawVal,
-}: {
-  label: string
-  value: string
-  onEdit: (v: string) => void
-  rawVal: number
-}) {
-  return (
-    <div className="p-3 rounded-lg border border-border bg-background text-center">
-      <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-        {label}
-      </span>
-      <div className="text-base font-bold font-mono text-foreground mt-0.5">
-        <InlineEdit
-          value={rawVal}
-          onSave={onEdit}
-          type="number"
-          prefix="$"
-          placeholder="0.00"
-          displayClassName="text-base font-bold font-mono"
-        />
-      </div>
-    </div>
-
-  )
-}
-
-function FlowOperator({ label }: { label: string }) {
-  return (
-    <div className="hidden sm:flex items-center justify-center font-bold text-muted-foreground text-sm">
-      {label}
-    </div>
-  )
-}
-
-function FieldCard({
-  label,
-  value,
-  prefix,
-  onSave,
-}: {
-  label: string
-  value: number
-  prefix?: string
-  onSave: (v: string) => void
-}) {
-  return (
-    <div className="p-3 rounded-lg border border-border bg-card">
-      <span className="eyebrow">{label}</span>
-      <div className="mt-1">
-        <InlineEdit
-          value={value}
-          onSave={onSave}
-          type="number"
-          prefix={prefix}
-          placeholder="0"
-          displayClassName="text-sm font-mono font-bold"
-        />
-      </div>
-    </div>
-  )
-}
-
-function SignalTile({
-  label,
-  value,
-  sub,
-  highlight,
-}: {
-  label: string
-  value: string
-  sub: string
-  highlight?: string
-}) {
-  return (
-    <div className="p-3 rounded-lg border border-border bg-background">
-      <span className="eyebrow">{label}</span>
-      <p className={cn('text-sm font-bold mt-1', highlight || 'text-foreground')}>
-        {value}
-      </p>
-      <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>
     </div>
   )
 }

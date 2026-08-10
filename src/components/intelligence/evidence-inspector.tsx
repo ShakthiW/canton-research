@@ -1,7 +1,7 @@
 'use client'
 
 import { ProductIntelligenceState } from '@/types/intelligence'
-import { RiCheckDoubleLine, RiEdit2Line, RiExternalLinkLine, RiShieldUserLine } from '@remixicon/react'
+import { RiEdit2Line, RiShieldUserLine } from '@remixicon/react'
 
 interface EvidenceInspectorProps {
   intelligence?: ProductIntelligenceState

@@ -18,7 +18,6 @@ interface AIChallengeCardProps {
 export function AIChallengeCard({
   counterArguments = [],
   hiddenCosts = [],
-  failureModes = [],
   verificationChecklist = [],
   hasBeenAnalyzed = false,
   isAnalyzing,

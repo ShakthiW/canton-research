@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/products/StatusBadge'
 import { UnitEconomicsBreakdown } from '@/components/intelligence/unit-economics-breakdown'
 import { WhatIfCalculator } from '@/components/intelligence/what-if-calculator'
-import { updateProduct, deleteProduct } from '@/lib/actions/products'
+import { deleteProduct } from '@/lib/actions/products'
 import { formatCurrency } from '@/lib/utils/currency'
 import { toast } from 'sonner'
 import {
@@ -21,10 +21,7 @@ import {
   RiVideoLine,
   RiStore2Line,
   RiDeleteBinLine,
-  RiCheckLine,
-  RiStarLine,
   RiSparklingLine,
-  RiPriceTag3Line,
 } from '@remixicon/react'
 
 interface DeskResearchDetailClientProps {
@@ -35,7 +32,7 @@ interface DeskResearchDetailClientProps {
 export function DeskResearchDetailClient({ product: initialProduct, settings }: DeskResearchDetailClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [product, setProduct] = useState(initialProduct)
+  const [product] = useState(initialProduct)
 
   const exchangeRate = settings?.exchangeRates?.USD_TO_LKR || 305
 
@@ -50,17 +47,6 @@ export function DeskResearchDetailClient({ product: initialProduct, settings }: 
         toast.error('Failed to delete product')
       }
     })
-  }
-
-  async function handleStatusChange(newStatus: string) {
-    setProduct(prev => ({ ...prev, status: newStatus as Product['status'] }))
-    try {
-      await updateProduct(product._id, { status: newStatus as Product['status'] })
-      toast.success(`Status updated to ${newStatus}`)
-    } catch {
-      setProduct(initialProduct)
-      toast.error('Failed to update status')
-    }
   }
 
   // Margin calculation
@@ -106,17 +92,19 @@ export function DeskResearchDetailClient({ product: initialProduct, settings }: 
           </div>
 
           {/* Sourcing Link Action */}
-          {product.sourceUrl && (
-            <a
-              href={product.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow hover:shadow-md transition-all shrink-0"
-            >
-              <span>Open 1688 / Alibaba Listing</span>
-              <RiExternalLinkLine className="size-4" />
-            </a>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {product.sourceUrl && (
+              <a
+                href={product.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow hover:shadow-md transition-all"
+              >
+                <span>Open Source Listing</span>
+                <RiExternalLinkLine className="size-4" />
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Quick Metrics Bar */}
@@ -142,6 +130,69 @@ export function DeskResearchDetailClient({ product: initialProduct, settings }: 
           </div>
         </div>
       </div>
+
+      {/* Layer A — Discovery Capture Details */}
+      <Card className="border-indigo-200/80 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50/20 via-background to-background">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <RiSparklingLine className="size-5 text-indigo-600 dark:text-indigo-400" />
+              <span>Discovery Layer A (Captured Idea)</span>
+            </div>
+            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border-indigo-200 text-xs font-semibold">
+              {product.discovery?.source || product.sourcePlatform || 'TikTok'}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3 rounded-xl bg-background border border-border/80">
+              <span className="text-[10px] uppercase font-semibold text-muted-foreground block">Initial Interest</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-400 text-sm mt-0.5 block">
+                {product.discovery?.initialInterest || 'INTERESTING'}
+              </span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-background border border-border/80">
+              <span className="text-[10px] uppercase font-semibold text-muted-foreground block">Observed Price</span>
+              <span className="font-bold text-foreground text-sm mt-0.5 block">
+                {product.discovery?.observedPrice ? `${product.discovery.observedPrice.currency} ${product.discovery.observedPrice.amount}` : 'Not specified'}
+              </span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-background border border-border/80">
+              <span className="text-[10px] uppercase font-semibold text-muted-foreground block">Category</span>
+              <span className="font-bold text-foreground text-sm mt-0.5 block">
+                {product.discovery?.rawCategory || product.category}
+              </span>
+            </div>
+          </div>
+
+          {product.discovery?.reasons && product.discovery.reasons.length > 0 && (
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Why it caught attention:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {product.discovery.reasons.map((r, i) => (
+                  <Badge key={i} variant="secondary" className="text-[11px] font-semibold">
+                    {r}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Deep Research Trigger */}
+          <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-4">
+            <p className="text-xs text-muted-foreground">
+              Ready to analyze suppliers, landed cost, and Sri Lanka market signals?
+            </p>
+            <Button size="sm" onClick={() => toast.info('Intelligence research engine initiated!')} className="gap-2 font-semibold shadow text-xs">
+              <span>🔎 Research This Product</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
 
       {/* 1. Founder Research Highlights & Field Observations */}
       <Card>

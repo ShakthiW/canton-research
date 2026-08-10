@@ -52,7 +52,8 @@ export function calculateFreight(input: CalculateFreightInput): FreightCalculati
 
   // 3. Volumetric Weight Calculation
   const divisor = rateProfile.volumetricDivisor || (rateProfile.mode === 'SEA_LCL' ? 1000 : 5000)
-  let totalVolumeCm3 = totalCbm * 1_000_000
+  const totalVolumeCm3 = totalCbm * 1_000_000
+
   const volumetricWeightKg = Number((totalVolumeCm3 / divisor).toFixed(2))
 
   const chargeableWeightKg = Math.max(actualWeightKg, volumetricWeightKg)

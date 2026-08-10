@@ -1,5 +1,4 @@
 import 'server-only'
-import { ObjectId } from 'mongodb'
 import { getDb } from '../mongodb/db'
 import type { Fair, FairVisit } from '@/types'
 

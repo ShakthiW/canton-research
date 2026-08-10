@@ -24,7 +24,6 @@ interface DemandViralityCardProps {
 
 export function DemandViralityCard({
   productName,
-  category,
   tiktokViews,
   growthTrend,
   competitionLevel,

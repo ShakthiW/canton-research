@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { calculateLandedCost } from '@/lib/utils/calculator'
 import type { CalculatorInputs, CalculatorResults } from '@/types'
 import { cn } from '@/lib/utils'
@@ -189,7 +188,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
   )
 }
 
-function Field({ label, value, onChange, prefix }: { label: string; value: number; onChange: (v: string) => void; prefix?: string }) {
+function Field({ label, value, onChange }: { label: string; value: number; onChange: (v: string) => void; prefix?: string }) {
   return (
     <div className="space-y-1">
       <Label className="text-[11px] text-muted-foreground font-medium">{label}</Label>

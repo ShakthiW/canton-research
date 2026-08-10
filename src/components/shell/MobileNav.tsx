@@ -2,13 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import {
-  RiDashboardLine, RiBox3Line, RiSearchEyeLine, RiAddLine, RiMenu2Line,
-  RiUserLine, RiStarLine,
+  RiDashboardLine, RiBox3Line, RiSearchEyeLine, RiAddLine, RiStarLine,
 } from '@remixicon/react'
-import { QuickCaptureDialog } from '@/components/products/QuickCaptureDialog'
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/dashboard', icon: RiDashboardLine },
@@ -19,7 +16,6 @@ const NAV_ITEMS = [
 
 export function MobileNav() {
   const pathname = usePathname()
-  const [captureOpen, setCaptureOpen] = useState(false)
 
   function isActive(href: string) {
     if (href === '/dashboard') return pathname === '/dashboard' || pathname === '/'

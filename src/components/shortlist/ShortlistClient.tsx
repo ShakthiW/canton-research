@@ -6,7 +6,7 @@ import type { ProductListItem, ProductStatus } from '@/types'
 import { OpportunityScore } from '@/components/products/OpportunityScore'
 import { StatusBadge } from '@/components/products/StatusBadge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { RiStarLine, RiFireLine, RiArrowRightLine } from '@remixicon/react'
+import { RiStarLine, RiFireLine } from '@remixicon/react'
 import { cn } from '@/lib/utils'
 
 interface ShortlistClientProps {
@@ -14,7 +14,7 @@ interface ShortlistClientProps {
   total: number
 }
 
-export function ShortlistClient({ products: initialProducts, total }: ShortlistClientProps) {
+export function ShortlistClient({ products: initialProducts }: ShortlistClientProps) {
   const [sortBy, setSortBy] = useState('score')
 
   const products = useMemo(() => {

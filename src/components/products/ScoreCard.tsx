@@ -2,7 +2,6 @@
 
 import type { Product } from '@/types'
 import { OpportunityScore } from './OpportunityScore'
-import { cn } from '@/lib/utils'
 
 const SCORE_DIMENSIONS = [
   {
@@ -87,7 +86,6 @@ export function ScoreCard({ product, onUpdate }: ScoreCardProps) {
       <div className="space-y-4">
         {SCORE_DIMENSIONS.map(dim => {
           const val = (product[dim.key as keyof Product] as number) || 0
-          const pct = Math.min(100, Math.max(0, (val / dim.max) * 100))
 
           return (
             <div key={dim.key} className="space-y-1.5">

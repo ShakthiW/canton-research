@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { RiCameraLine, RiAddLine, RiCloseLine, RiImageLine, RiQrCodeLine, RiBankCardLine } from '@remixicon/react'
+import { RiCameraLine, RiAddLine, RiCloseLine } from '@remixicon/react'
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 
 interface ImageUploaderPlaceholderProps {
   label: string
@@ -19,7 +20,6 @@ export function ImageUploaderPlaceholder({
   images,
   onChange,
   multiple = false,
-  type = 'product',
 }: ImageUploaderPlaceholderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isCapturing, setIsCapturing] = useState(false)
@@ -66,18 +66,8 @@ export function ImageUploaderPlaceholder({
     onChange(updated)
   }
 
-  const getIcon = () => {
-    switch (type) {
-      case 'booth': return RiImageLine
-      case 'card': return RiBankCardLine
-      case 'qr': return RiQrCodeLine
-      default: return RiCameraLine
-    }
-  }
-
-  const IconComp = getIcon()
-
   return (
+
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -100,7 +90,7 @@ export function ImageUploaderPlaceholder({
         <div className="grid grid-cols-3 gap-2">
           {images.map((url, idx) => (
             <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted">
-              <img src={url} alt={`Reference ${idx + 1}`} className="w-full h-full object-cover" />
+              <Image width={100} height={100} src={url} alt={`Reference ${idx + 1}`} className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => handleRemove(idx)}
@@ -141,9 +131,10 @@ export function ImageUploaderPlaceholder({
             disabled={isCapturing}
             className="text-xs font-normal text-muted-foreground h-[48px] px-3 border-dashed"
           >
-            <IconComp className="size-4 mr-1 text-muted-foreground" />
+            <RiCameraLine className="size-4 mr-1 text-muted-foreground" />
             {isCapturing ? 'Snapping...' : 'Use Sample Photo'}
           </Button>
+
         </div>
       )}
     </div>

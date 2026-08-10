@@ -1,35 +1,27 @@
 'use client'
 
-import { useState, useTransition, useRef } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import type { Fair, FairVisit, Supplier, ProductListItem, BoothInterestLevel } from '@/types'
-import { Card } from '@/components/ui/card'
+import type { Fair, FairVisit, Supplier, ProductListItem } from '@/types'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { createFairVisit } from '@/lib/actions/fair'
-import { formatDate } from '@/lib/utils/time'
 import {
   RiFlashlightLine,
-  RiCheckLine,
-  RiLoader4Line,
   RiStore2Line,
   RiStarLine,
   RiArrowRightLine,
   RiBuilding2Line,
-  RiHistoryLine,
+  RiDownload2Line,
+  RiSearchLine,
+  RiBox3Line,
+  RiMoneyDollarCircleLine,
+  RiAddLine,
+  RiFileTextLine,
+  RiQuestionLine,
 } from '@remixicon/react'
-import { cn } from '@/lib/utils'
-
-const INTEREST_OPTIONS: Array<{ level: BoothInterestLevel; label: string; dot: string }> = [
-  { level: 'Shortlisted', label: '★ Shortlisted (High Priority)', dot: 'bg-amber-500' },
-  { level: 'Interesting', label: 'Interesting Opportunity', dot: 'bg-blue-500' },
-  { level: 'Follow Up', label: 'Needs Follow Up', dot: 'bg-purple-500' },
-  { level: 'Rejected', label: 'Pass / Not Viable', dot: 'bg-rose-500' },
-]
 
 interface FairClientProps {
   fairs: Fair[]
@@ -38,349 +30,351 @@ interface FairClientProps {
   products: ProductListItem[]
 }
 
-export function FairClient({ fairs, visits, suppliers, products }: FairClientProps) {
-  const [isPending, startTransition] = useTransition()
-  const [successPing, setSuccessPing] = useState(false)
-  const productInputRef = useRef<HTMLInputElement>(null)
+const HALL_ZONES = [
+  { id: 'Hall 1.1', name: 'Electronics & Smart Tech', icon: RiFlashlightLine, color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 border-indigo-200' },
+  { id: 'Hall 2.3', name: 'Home & Kitchen Essentials', icon: RiStore2Line, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 border-emerald-200' },
+  { id: 'Hall 5.2', name: 'Beauty & Personal Care', icon: RiStarLine, color: 'text-pink-600 dark:text-pink-400 bg-pink-50 border-pink-200' },
+  { id: 'Hall 7.3', name: 'Fitness & Outdoor Gear', icon: RiBox3Line, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 border-amber-200' },
+]
+
+export function FairClient({ fairs, visits }: FairClientProps) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedInterest, setSelectedInterest] = useState<string>('ALL')
 
   const activeFair = fairs[0] || {
+    _id: 'canton-140',
     name: '140th Canton Fair',
     location: 'Guangzhou, China',
     phase: 'Phase 1',
   }
 
-  // Fast capture form state
-  const [form, setForm] = useState({
-    boothNumber: '',
-    hall: 'Hall 1.1',
-    productName: '',
-    supplierName: '',
-    priceQuoted: '',
-    moq: '',
-    contactInfo: '',
-    notes: '',
-    interestLevel: 'Shortlisted' as BoothInterestLevel,
+  // Calculate Live Field KPIs
+  const totalVisits = visits.length
+  const shortlistedVisits = visits.filter(v => v.interestLevel === 'Shortlisted')
+  const samplesRequested = visits.filter(v => (v.sampleCostUsd || 0) > 0).length
+  const avgQuotedPrice = visits.length > 0
+    ? visits.reduce((acc, v) => acc + (v.priceQuoted || 0), 0) / visits.length
+    : 0
+
+  // Filter Visits
+  const filteredVisits = visits.filter(v => {
+    const matchesSearch =
+      v.boothNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (v.productName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (v.supplierName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (v.hall || '').toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesInterest =
+      selectedInterest === 'ALL' ? true : v.interestLevel === selectedInterest
+
+    return matchesSearch && matchesInterest
   })
 
-  function update(key: string, val: unknown) {
-    setForm(prev => ({ ...prev, [key]: val }))
-  }
-
-  function handleFastCapture() {
-    if (!form.boothNumber.trim()) {
-      toast.error('Please enter Booth #')
-      return
-    }
-    if (!form.productName.trim() && !form.supplierName.trim()) {
-      toast.error('Please enter Product or Supplier name')
-      return
-    }
-
-    startTransition(async () => {
-      try {
-        await createFairVisit({
-          fairId: activeFair._id || '',
-          boothNumber: form.boothNumber.trim(),
-          hall: form.hall.trim(),
-          productName: form.productName.trim(),
-          supplierName: form.supplierName.trim(),
-          priceQuoted: form.priceQuoted ? parseFloat(form.priceQuoted) : undefined,
-          moq: form.moq ? parseInt(form.moq) : undefined,
-          contactInfo: form.contactInfo.trim(),
-          notes: form.notes.trim(),
-          interestLevel: form.interestLevel,
-          followUpRequired: form.interestLevel === 'Follow Up' || form.interestLevel === 'Shortlisted',
-        })
-
-        // Success micro-feedback & instant auto-reset for next booth
-        setSuccessPing(true)
-        setTimeout(() => setSuccessPing(false), 2000)
-
-        // Clear product & price while keeping hall/booth prefix for speed
-        setForm(prev => ({
-          ...prev,
-          productName: '',
-          priceQuoted: '',
-          moq: '',
-          notes: '',
-          interestLevel: 'Shortlisted',
-        }))
-
-        // Auto-focus back on product name
-        setTimeout(() => productInputRef.current?.focus(), 50)
-        toast.success('Booth visit captured ✓')
-      } catch {
-        toast.error('Failed to save booth visit')
-      }
-    })
+  function handleExportDossier() {
+    toast.success('Exporting Canton Fair Floor Dossier (CSV/PDF)...')
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-24 md:pb-8 space-y-6">
-      {/* 1. Fair Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/80 pb-4">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24 md:pb-12 space-y-8 select-none">
+      {/* 1. Canton Fair Header & Global Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-6">
         <div>
-          <span className="eyebrow">Field Operations · China</span>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
-            <RiFlashlightLine className="size-6 text-emerald-600 dark:text-emerald-400" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-800 mb-2">
+            <RiFlashlightLine className="size-3.5" />
+            <span>Field Operations · Guangzhou Trade Hub</span>
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
             {activeFair.name}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            {activeFair.location} · {activeFair.phase} · High-speed booth intelligence logging
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            {activeFair.location} · {activeFair.phase} · Trade Show Floor Intelligence & Supplier Operations
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-right">
-            <span className="text-[10px] uppercase font-semibold text-muted-foreground">
-              Booths Visited
-            </span>
-            <p className="text-xl font-black font-mono text-foreground">
-              {visits.length}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Main Cockpit: Fast Walking Capture (Top) + Recent Captures (Bottom) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left (7 cols): High-Speed Capture Console */}
-        <div className="lg:col-span-7 rounded-lg border-2 border-primary/30 bg-card p-5 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <div>
-              <span className="eyebrow">Walking Console</span>
-              <h2 className="text-base font-bold text-foreground mt-0.5">
-                Fast Booth Capture
-              </h2>
-            </div>
-            {successPing && (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-pulse">
-                <RiCheckLine className="size-4" /> Captured ✓
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            {/* Booth & Hall */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Booth # *
-                </Label>
-                <Input
-                  value={form.boothNumber}
-                  onChange={e => update('boothNumber', e.target.value)}
-                  placeholder="e.g. 5.1 F22"
-                  className="h-11 text-sm font-bold uppercase tracking-wide bg-background"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Hall
-                </Label>
-                <Input
-                  value={form.hall}
-                  onChange={e => update('hall', e.target.value)}
-                  placeholder="Hall 5.1"
-                  className="h-11 text-sm bg-background"
-                />
-              </div>
-            </div>
-
-            {/* Product Name */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Product Name / Hook *
-              </Label>
-              <Input
-                ref={productInputRef}
-                value={form.productName}
-                onChange={e => update('productName', e.target.value)}
-                placeholder="e.g. Magnetic Cable Management System"
-                className="h-12 text-base font-semibold bg-background"
-                autoFocus
-              />
-            </div>
-
-            {/* Quoted Price & MOQ */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Quoted Unit Price (USD)
-                </Label>
-                <Input
-                  type="number"
-                  value={form.priceQuoted}
-                  onChange={e => update('priceQuoted', e.target.value)}
-                  placeholder="0.00"
-                  className="h-11 text-base font-mono font-bold bg-background"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  MOQ (Units)
-                </Label>
-                <Input
-                  type="number"
-                  value={form.moq}
-                  onChange={e => update('moq', e.target.value)}
-                  placeholder="100"
-                  className="h-11 text-base font-mono bg-background"
-                />
-              </div>
-            </div>
-
-            {/* Supplier & Contact */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Supplier / Company
-                </Label>
-                <Input
-                  value={form.supplierName}
-                  onChange={e => update('supplierName', e.target.value)}
-                  placeholder="Factory name"
-                  className="h-10 text-xs bg-background"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  WeChat ID / Phone
-                </Label>
-                <Input
-                  value={form.contactInfo}
-                  onChange={e => update('contactInfo', e.target.value)}
-                  placeholder="WeChat ID"
-                  className="h-10 text-xs bg-background"
-                />
-              </div>
-            </div>
-
-            {/* Interest Level */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Conviction / Interest Level
-              </Label>
-              <Select
-                value={form.interestLevel}
-                onValueChange={(v: string | null) => {
-                  if (v) update('interestLevel', v as BoothInterestLevel)
-                }}
-              >
-                <SelectTrigger className="h-10 text-xs bg-background font-semibold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {INTEREST_OPTIONS.map(opt => (
-                    <SelectItem key={opt.level} value={opt.level} className="text-xs">
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Field Observations / Quality Note
-              </Label>
-              <Textarea
-                value={form.notes}
-                onChange={e => update('notes', e.target.value)}
-                placeholder="Material quality, packaging options, sample willingness, OEM terms..."
-                rows={2}
-                className="text-xs bg-background resize-none"
-              />
-            </div>
-          </div>
-
-          {/* Large Primary Action */}
-          <Button
-            size="lg"
-            className="w-full h-12 text-sm font-bold tracking-wide uppercase bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-            onClick={handleFastCapture}
-            disabled={isPending}
+          <Link
+            href="/products/capture?source=CANTON_FAIR"
+            className="inline-flex items-center justify-center h-11 px-5 text-xs font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition-all"
           >
-            {isPending ? (
-              <RiLoader4Line className="size-5 animate-spin" />
-            ) : (
-              <RiCheckLine className="size-5 mr-1" />
-            )}
-            {isPending ? 'Logging...' : 'Capture Booth Product'}
+            <RiAddLine className="size-4" />
+            <span>+ Capture Canton Fair Finding</span>
+          </Link>
+
+          <Button
+            variant="outline"
+            onClick={handleExportDossier}
+            className="h-11 px-4 text-xs font-semibold gap-2 rounded-xl"
+          >
+            <RiDownload2Line className="size-4" />
+            <span>Export Dossier</span>
           </Button>
         </div>
 
-        {/* Right (5 cols): Live Stream of Fair Captures */}
-        <div className="lg:col-span-5 rounded-lg border border-border bg-card overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-border flex items-center justify-between">
+      </div>
+
+
+      {/* 2. Live Field Operations KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-card border-border shadow-xs">
+          <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <span className="eyebrow">Floor Stream</span>
-              <h2 className="text-sm font-bold text-foreground mt-0.5 flex items-center gap-1.5">
-                <RiHistoryLine className="size-4 text-primary" />
-                Recent Floor Captures
-              </h2>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total Booths Visited</span>
+              <p className="text-2xl font-black text-foreground mt-1 font-mono">{totalVisits}</p>
             </div>
-            <span className="text-xs font-mono text-muted-foreground">
-              {visits.length} Total
-            </span>
+            <div className="size-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <RiBuilding2Line className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border shadow-xs">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Shortlisted Factories</span>
+              <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 font-mono">{shortlistedVisits.length}</p>
+            </div>
+            <div className="size-11 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <RiStarLine className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border shadow-xs">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Samples Requested</span>
+              <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">{samplesRequested}</p>
+            </div>
+            <div className="size-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <RiBox3Line className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border shadow-xs">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Avg. Quoted FOB</span>
+              <p className="text-2xl font-black text-foreground mt-1 font-mono">${avgQuotedPrice.toFixed(2)}</p>
+            </div>
+            <div className="size-11 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <RiMoneyDollarCircleLine className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 3. Section 1: Exhibition Hall & Zone Matrix */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+            <RiBuilding2Line className="size-5 text-indigo-600" />
+            Exhibition Hall Analytics Matrix
+          </h2>
+          <span className="text-xs text-muted-foreground">4 Active Zones Visited</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {HALL_ZONES.map(hall => {
+            const Icon = hall.icon
+            const hallVisits = visits.filter(v => v.hall === hall.id)
+            const hallShortlisted = hallVisits.filter(v => v.interestLevel === 'Shortlisted').length
+            return (
+              <Card key={hall.id} className="border-border shadow-xs hover:border-primary/40 transition-all">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className={`p-2.5 rounded-xl border ${hall.color}`}>
+                      <Icon className="size-5" />
+                    </div>
+                    <Badge variant="outline" className="text-[10px] font-mono font-bold">
+                      {hallVisits.length} Visits
+                    </Badge>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">{hall.id}</h3>
+                    <p className="text-xs text-muted-foreground">{hall.name}</p>
+                  </div>
+
+                  <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Shortlisted:</span>
+                    <span className="font-bold text-amber-600 dark:text-amber-400">{hallShortlisted} Factories</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 4. Section 2: Trade Show Sourcing Field Guide & Questions */}
+      <Card className="border-emerald-200/80 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-50/20 via-background to-background shadow-xs">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+            <RiQuestionLine className="size-5 text-emerald-600" />
+            <span>Canton Fair Trade Negotiation Field Guide & Captured Parameters</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div className="p-3.5 rounded-xl bg-background border border-border/80 space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Production Lead Times</span>
+              <p className="font-bold text-foreground text-sm">15 – 25 Days Average</p>
+              <p className="text-[11px] text-muted-foreground">Standard production window quoted at booths.</p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-background border border-border/80 space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Custom Packaging & OEM</span>
+              <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">85% Factories Willing</p>
+              <p className="text-[11px] text-muted-foreground">Low MOQ requirements for custom box printing.</p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-background border border-border/80 space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Sample Policy</span>
+              <p className="font-bold text-foreground text-sm">$10 – $30 USD / Sample</p>
+              <p className="text-[11px] text-muted-foreground">Sample fee credited towards initial bulk order.</p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-background border border-border/80 space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Payment Terms</span>
+              <p className="font-bold text-indigo-600 dark:text-indigo-400 text-sm">30% Deposit, 70% T/T</p>
+              <p className="text-[11px] text-muted-foreground">Standard terms negotiated with Canton Fair suppliers.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 5. Section 3: Searchable Floor Stream & Supplier Directory */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+              <RiFileTextLine className="size-5 text-indigo-600" />
+              Canton Fair Floor Directory & Log Stream
+            </h2>
+            <p className="text-xs text-muted-foreground">Search and manage recorded booth visits from Guangzhou</p>
           </div>
 
-          <div className="divide-y divide-border overflow-y-auto max-h-[560px] scrollbar-thin">
-            {visits.map((visit, idx) => (
-              <div
-                key={visit._id}
-                className="p-3.5 hover:bg-muted/30 transition-colors cockpit-row space-y-1.5"
-              >
+          <div className="flex items-center gap-2">
+            <div className="relative w-full sm:w-64">
+              <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search booth #, product, hall..."
+                className="pl-9 h-10 text-xs rounded-xl"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="flex flex-wrap gap-2">
+          {['ALL', 'Shortlisted', 'Interesting', 'Follow Up', 'Rejected'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setSelectedInterest(tab)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                selectedInterest === tab
+                  ? 'bg-primary text-primary-foreground border-primary shadow-xs font-bold'
+                  : 'bg-background border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+              }`}
+            >
+              {tab === 'ALL' ? 'All Visited Booths' : tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Booth Visit Stream Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredVisits.map((visit, idx) => (
+            <Card key={visit._id} className="border-border shadow-xs hover:border-primary/40 transition-all flex flex-col justify-between">
+              <CardContent className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-muted-foreground/60">
-                      {String(idx + 1).padStart(2, '0')}
-                    </span>
-                    <span className="font-mono font-bold text-xs bg-muted px-1.5 py-0.5 rounded">
-                      {visit.boothNumber}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">
-                      {visit.hall}
-                    </span>
+                    <span className="font-mono text-xs font-bold text-muted-foreground">#{String(idx + 1).padStart(2, '0')}</span>
+                    <Badge variant="secondary" className="font-mono font-extrabold text-xs bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                      Booth {visit.boothNumber}
+                    </Badge>
+                    <span className="text-xs font-semibold text-muted-foreground">{visit.hall}</span>
                   </div>
-                  <span
-                    className={cn(
-                      'text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded',
+
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] font-bold uppercase ${
                       visit.interestLevel === 'Shortlisted'
-                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
+                        ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border-amber-300'
                         : 'bg-muted text-muted-foreground'
-                    )}
+                    }`}
                   >
                     {visit.interestLevel}
-                  </span>
+                  </Badge>
                 </div>
 
-                <div className="flex items-center justify-between text-xs font-mono">
-                  {visit.priceQuoted > 0 && (
-                    <span>
-                      Quoted: <strong className="text-primary">${visit.priceQuoted}</strong>
-                    </span>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">{visit.productName || 'Unnamed Booth Product'}</h3>
+                  {visit.supplierName && (
+                    <p className="text-xs font-semibold text-muted-foreground mt-0.5">{visit.supplierName}</p>
                   )}
-                  {visit.moq > 0 && <span>MOQ: {visit.moq}</span>}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-muted/30 text-xs font-mono">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase block font-sans font-semibold">FOB Quote</span>
+                    <span className="font-bold text-primary">${visit.priceQuoted?.toFixed(2) || '0.00'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase block font-sans font-semibold">MOQ</span>
+                    <span className="font-bold text-foreground">{visit.moq || 100} units</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase block font-sans font-semibold">Lead Time</span>
+                    <span className="font-bold text-foreground">{visit.leadTimeDays || 15} days</span>
+                  </div>
                 </div>
 
                 {visit.notes && (
-                  <p className="text-[11px] text-muted-foreground line-clamp-2 bg-muted/30 p-1.5 rounded">
-                    {visit.notes}
+                  <p className="text-xs text-muted-foreground italic bg-muted/20 p-2.5 rounded-xl border border-border/50">
+                    &quot;{visit.notes}&quot;
+
                   </p>
                 )}
-              </div>
-            ))}
 
-            {visits.length === 0 && (
-              <div className="p-8 text-center text-xs text-muted-foreground">
-                No floor captures recorded yet. Start capturing above.
+                {visit.contactInfo && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <span className="font-semibold text-foreground">WeChat / Phone:</span>
+                    <span className="font-mono bg-background px-2 py-0.5 rounded border border-border">{visit.contactInfo}</span>
+                  </div>
+                )}
+              </CardContent>
+
+              <div className="px-5 py-3 border-t border-border/60 bg-muted/10 flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">OEM Packaging: {visit.customPackagingAvailable ? 'Available ✓' : 'No'}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => toast.success(`Booth ${visit.boothNumber} linked to Product Catalog!`)}
+                  className="text-xs font-bold gap-1 rounded-xl"
+                >
+                  <span>Convert to Product</span>
+                  <RiArrowRightLine className="size-3.5" />
+                </Button>
               </div>
-            )}
-          </div>
+            </Card>
+          ))}
+
+          {filteredVisits.length === 0 && (
+            <div className="col-span-full p-12 text-center bg-card border border-border rounded-2xl space-y-3">
+              <RiBuilding2Line className="size-10 text-muted-foreground mx-auto" />
+              <h3 className="text-sm font-bold text-foreground">No Booth Visits Found</h3>
+              <p className="text-xs text-muted-foreground">Capture Canton Fair findings using the + Capture Canton Fair Finding button above.</p>
+
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
+
+

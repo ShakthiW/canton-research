@@ -6,8 +6,7 @@ import type { ProductListItem, ProductStatus } from '@/types'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { OpportunityScore } from '@/components/products/OpportunityScore'
 import { StatusBadge } from '@/components/products/StatusBadge'
-import { RiScales2Line, RiCloseLine, RiSparklingLine, RiTrophyLine } from '@remixicon/react'
-import { cn } from '@/lib/utils'
+import { RiScales2Line, RiCloseLine } from '@remixicon/react'
 
 interface CompareClientProps {
   products: ProductListItem[]

@@ -16,13 +16,10 @@ import {
   RiBuildingLine,
   RiVideoLine,
   RiStore2Line,
-  RiPriceTag3Line,
   RiAddLine,
   RiDeleteBinLine,
   RiCheckLine,
   RiLoader4Line,
-  RiArrowRightLine,
-  RiLinkM,
   RiSparklingLine,
 } from '@remixicon/react'
 
@@ -215,7 +212,7 @@ export function DeskResearchForm() {
             router.push(`/desk-research/${res.id}`)
           }
         }
-      } catch (err) {
+      } catch {
         toast.error('Failed to save desk research product')
       }
     })

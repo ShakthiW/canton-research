@@ -8,7 +8,7 @@ import { calculateOpportunityScore } from '@/lib/engines/scoring-engine'
 import { getDb } from '@/lib/mongodb/db'
 import { getSettings } from '@/lib/queries/settings'
 import { getVisualSearchProvider } from '@/lib/providers'
-import { CustomsTariff, FreightMode, FreightRateProfile, ProductIntelligenceState, ResearchRun } from '@/types/intelligence'
+import { CustomsTariff, FreightMode, FreightRateProfile, ProductIntelligenceState } from '@/types/intelligence'
 
 import { runAIChallengeAgent } from './ai-challenge-agent'
 import { runCompetitionAgent } from './competition-agent'
@@ -77,8 +77,8 @@ export async function executeIntelligenceResearch(options: ExecuteResearchRunOpt
           { id: runId },
           {
             $set: updateObj,
-            ...(pushObj ? { $push: pushObj as any } : {}),
-          }
+            ...(pushObj ? { $push: pushObj } : {}),
+          } as unknown as Record<string, unknown>
         )
       } catch (err) {
         console.error('Failed to update run progress:', err)
@@ -263,7 +263,9 @@ export async function executeIntelligenceResearch(options: ExecuteResearchRunOpt
       supplierConfidence: specs.confidence,
       contentPotentialScore: viralityRes.contentPotentialScore,
       marketGapScore: marketGapRes.marketGapScore,
-      isRegulatoryRestricted: false,
+      isRegulatoryRestricted: riskRes.overallRiskLevel === 'HIGH',
+
+
       totalInvestmentLkr: landedCostCalc.totalLandedCostLkr,
     })
 

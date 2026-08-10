@@ -38,8 +38,12 @@ export function InlineEdit({
 
   // Sync external value changes
   useEffect(() => {
-    if (!editing) setDraft(String(value ?? ''))
+    if (!editing) {
+      const timer = setTimeout(() => setDraft(String(value ?? '')), 0)
+      return () => clearTimeout(timer)
+    }
   }, [value, editing])
+
 
   function startEdit() {
     setDraft(String(value ?? ''))

@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { RiSearchLine, RiMoonLine, RiSunLine, RiSparkling2Line } from '@remixicon/react'
+import { RiSearchLine, RiMoonLine, RiSunLine } from '@remixicon/react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { QuickAdd } from './QuickAdd'

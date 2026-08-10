@@ -5,7 +5,6 @@ import {
   RiCheckLine,
   RiExchangeDollarLine,
   RiFileTextLine,
-  RiGlobalLine,
   RiShipLine,
   RiSparklingLine,
   RiUpload2Line,

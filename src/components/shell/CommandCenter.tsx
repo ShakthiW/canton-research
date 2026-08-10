@@ -23,7 +23,6 @@ import {
   RiCalculatorLine,
   RiScales2Line,
   RiAddLine,
-  RiArrowRightLine,
   RiFlashlightLine,
 } from '@remixicon/react'
 import { useCommandCenter } from '@/hooks/useCommandCenter'
@@ -77,18 +76,29 @@ export function CommandCenter() {
 
           <CommandGroup heading="Actions">
             <CommandItem
+              onSelect={() => navigate('/products/capture')}
+              className="gap-2 text-xs font-semibold"
+            >
+              <RiAddLine className="size-4 text-primary" />
+              <span>Rapid Product Capture (15s Inbox)</span>
+              <kbd className="ml-auto text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                N
+              </kbd>
+            </CommandItem>
+            <CommandItem
               onSelect={() => {
                 close()
                 setQuickCapture(true)
               }}
               className="gap-2 text-xs"
             >
-              <RiAddLine className="size-4 text-primary" />
-              <span>Capture Product Opportunity</span>
+              <RiFlashlightLine className="size-4 text-amber-500" />
+              <span>Quick Canton Fair Floor Capture</span>
               <kbd className="ml-auto text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                 C
               </kbd>
             </CommandItem>
+
             <CommandItem
               onSelect={() => {
                 close()

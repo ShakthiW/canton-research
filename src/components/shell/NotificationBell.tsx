@@ -23,10 +23,14 @@ export function NotificationBell() {
   }
 
   useEffect(() => {
-    reload()
+    const timer = setTimeout(reload, 0)
     window.addEventListener('canton_notification_updated', reload)
-    return () => window.removeEventListener('canton_notification_updated', reload)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('canton_notification_updated', reload)
+    }
   }, [])
+
 
   const unreadCount = notifications.filter((n) => !n.read).length
 

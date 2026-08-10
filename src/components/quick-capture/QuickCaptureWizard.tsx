@@ -13,7 +13,6 @@ import { ImageUploaderPlaceholder } from './ImageUploaderPlaceholder'
 import { SourcingTermsSelector } from './SourcingTermsSelector'
 import { saveQuickCaptureSession, QuickCaptureProductInput } from '@/lib/actions/quick-capture'
 
-import type { BoothInterestLevel } from '@/types'
 import { toast } from 'sonner'
 import {
   RiBuildingLine,
@@ -93,7 +92,8 @@ export function QuickCaptureWizard() {
   }
 
   function handleFinishSession() {
-    let finalProductsList = [...capturedProducts]
+    const finalProductsList = [...capturedProducts]
+
 
     // If current product form has a name, include it
     if (currentProduct.name.trim()) {

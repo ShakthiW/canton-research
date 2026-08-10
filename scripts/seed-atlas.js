@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { MongoClient, ObjectId } = require('mongodb');
+
 
 const uri = process.env.MONGODB_URI;
 if (!uri) {

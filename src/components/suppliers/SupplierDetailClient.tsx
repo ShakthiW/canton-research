@@ -166,7 +166,7 @@ export function SupplierDetailClient({ supplier: initialSupplier }: SupplierDeta
   )
 }
 
-function InfoCard({ title, icon, value, onEdit, type }: {
+function InfoCard({ title, icon, value, onEdit }: {
   title: string
   icon: React.ReactNode
   value: string

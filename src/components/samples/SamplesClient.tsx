@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import type { Sample, ProductListItem } from '@/types'
 import { formatDate } from '@/lib/utils/time'
-import { RiFlaskLine, RiTruckLine, RiCheckboxCircleLine, RiTimeLine } from '@remixicon/react'
+import { RiFlaskLine } from '@remixicon/react'
 import { cn } from '@/lib/utils'
 
 interface SamplesClientProps {
@@ -12,7 +12,7 @@ interface SamplesClientProps {
   products: ProductListItem[]
 }
 
-export function SamplesClient({ samples, total, products }: SamplesClientProps) {
+export function SamplesClient({ samples, products }: SamplesClientProps) {
   const productMap = new Map(products.map(p => [p._id, p]))
 
   const inTransit = samples.filter(s => ['Ordered', 'Shipped'].includes(s.status))

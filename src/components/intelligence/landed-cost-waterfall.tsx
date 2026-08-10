@@ -1,7 +1,7 @@
 'use client'
 
 import { CustomsCalculationResult, LandedCostResult } from '@/types/intelligence'
-import { RiArrowRightLine, RiInformationLine, RiShieldCheckLine } from '@remixicon/react'
+import { RiInformationLine, RiShieldCheckLine } from '@remixicon/react'
 import { useState } from 'react'
 
 interface LandedCostWaterfallProps {

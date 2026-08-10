@@ -12,8 +12,6 @@ import {
   RiBuilding4Line,
   RiMapPinLine,
   RiWechatLine,
-  RiPhoneLine,
-  RiShieldCheckLine,
 } from '@remixicon/react'
 
 interface SuppliersClientProps {
@@ -21,7 +19,7 @@ interface SuppliersClientProps {
   total: number
 }
 
-export function SuppliersClient({ initialSuppliers, total }: SuppliersClientProps) {
+export function SuppliersClient({ initialSuppliers }: SuppliersClientProps) {
   const [search, setSearch] = useState('')
   const [addOpen, setAddOpen] = useState(false)
 

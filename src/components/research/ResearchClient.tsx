@@ -16,7 +16,6 @@ import { formatDistanceToNow } from '@/lib/utils/time'
 import {
   RiSearchLine,
   RiAddLine,
-  RiArrowRightLine,
   RiTiktokLine,
   RiInstagramLine,
   RiYoutubeLine,
@@ -39,7 +38,7 @@ interface ResearchClientProps {
   total: number
 }
 
-export function ResearchClient({ initialItems, total }: ResearchClientProps) {
+export function ResearchClient({ initialItems }: ResearchClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState('')

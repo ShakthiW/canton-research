@@ -20,7 +20,7 @@ import {
   RiMenuUnfoldLine,
   RiSparkling2Line,
 } from '@remixicon/react'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 interface SidebarCounts {
   products: number
@@ -28,6 +28,7 @@ interface SidebarCounts {
   shortlisted: number
   suppliers: number
   samples: number
+  validation: number
 }
 
 const WORKSPACE_NAV = [
@@ -38,7 +39,6 @@ const WORKSPACE_NAV = [
   { label: 'Canton Fair', href: '/canton-fair', icon: RiMapPinLine, countKey: null },
 ]
 
-
 const OPERATIONS_NAV = [
   { label: 'Shortlist', href: '/shortlist', icon: RiStarLine, countKey: 'shortlisted' },
   { label: 'Samples', href: '/samples', icon: RiFlaskLine, countKey: 'samples' },
@@ -46,7 +46,8 @@ const OPERATIONS_NAV = [
 ]
 
 const TOOLS_NAV = [
-  { label: 'Compare', href: '/compare', icon: RiScales2Line },
+  { label: 'Research Agent', href: '/research', icon: RiSearchEyeLine },
+  { label: 'Compare Products', href: '/compare', icon: RiScales2Line },
   { label: 'Calculator', href: '/calculator', icon: RiCalculatorLine },
 ]
 
@@ -61,9 +62,11 @@ export function Sidebar({ counts }: { counts: SidebarCounts }) {
   useEffect(() => {
     const saved = localStorage.getItem('cpi_sidebar_collapsed')
     if (saved !== null) {
-      setCollapsed(saved === 'true')
+      const timer = setTimeout(() => setCollapsed(saved === 'true'), 0)
+      return () => clearTimeout(timer)
     }
   }, [])
+
 
   function toggleCollapse() {
     const next = !collapsed

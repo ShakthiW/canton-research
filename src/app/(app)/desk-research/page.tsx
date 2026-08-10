@@ -4,17 +4,13 @@ import { getSettings } from '@/lib/queries/settings'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { StatusBadge } from '@/components/products/StatusBadge'
 import { formatCurrency } from '@/lib/utils/currency'
 import {
   RiSearchEyeLine,
   RiAddLine,
-  RiBuildingLine,
-  RiVideoLine,
-  RiStore2Line,
-  RiExternalLinkLine,
   RiArrowRightLine,
 } from '@remixicon/react'
+import Image from 'next/image'
 
 export const metadata = {
   title: 'Desk Research Products | Sourcing OS',
@@ -22,7 +18,7 @@ export const metadata = {
 }
 
 export default async function DeskResearchPage() {
-  const [{ items: products, total }, settings] = await Promise.all([
+  const [{ items: products }, settings] = await Promise.all([
     getProducts({ productType: 'DESK_RESEARCH', limit: 100 }),
     getSettings(),
   ])
@@ -78,7 +74,7 @@ export default async function DeskResearchPage() {
                   <div className="flex gap-3">
                     {product.imageUrl && (
                       <div className="size-14 rounded-xl overflow-hidden bg-muted shrink-0 border border-border">
-                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                        <Image width={500} height={500} src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
@@ -94,7 +90,8 @@ export default async function DeskResearchPage() {
                   {/* Key Highlights Snippet */}
                   {product.researchHighlights && (
                     <p className="text-xs text-muted-foreground line-clamp-2 bg-muted/40 p-2.5 rounded-lg border border-border/50 italic">
-                      "{product.researchHighlights}"
+                      &quot;{product.researchHighlights}&quot;
+
                     </p>
                   )}
 

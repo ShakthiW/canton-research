@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { createProduct } from '@/lib/actions/products'
-import { RiCheckLine, RiLoader4Line, RiCameraLine, RiArrowRightLine } from '@remixicon/react'
+import { RiCheckLine, RiLoader4Line, RiArrowRightLine } from '@remixicon/react'
 import { cn } from '@/lib/utils'
 
 const CATEGORIES = [

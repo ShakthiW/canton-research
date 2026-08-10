@@ -1,8 +1,8 @@
 'use server'
 
-import { ObjectId } from 'mongodb'
 import { revalidatePath } from 'next/cache'
-import { getDb } from '../mongodb/db'
+
+import { getDb } from '@/lib/mongodb/db'
 import type { BoothInterestLevel } from '@/types'
 
 export async function createFairVisit(data: {
@@ -15,10 +15,15 @@ export async function createFairVisit(data: {
   notes?: string
   priceQuoted?: number
   moq?: number
+  leadTimeDays?: number
+  customPackagingAvailable?: boolean
+  sampleCostUsd?: number
+  paymentTerms?: string
   interestLevel: BoothInterestLevel
   followUpRequired?: boolean
   contactInfo?: string
 }) {
+
   const db = await getDb()
 
   let supplierId = ''
@@ -106,10 +111,16 @@ export async function createFairVisit(data: {
     phase: data.phase || 'Phase 1',
     supplierId,
     productId,
+    productName: data.productName || '',
+    supplierName: data.supplierName || '',
     visitDate: new Date().toISOString(),
     notes: data.notes || '',
     priceQuoted: data.priceQuoted || 0,
     moq: data.moq || 0,
+    leadTimeDays: data.leadTimeDays || 15,
+    customPackagingAvailable: data.customPackagingAvailable ?? true,
+    sampleCostUsd: data.sampleCostUsd || 0,
+    paymentTerms: data.paymentTerms || '30% Deposit, 70% Balance',
     photoUrl: '',
     contactInfo: data.contactInfo || '',
     interestLevel: data.interestLevel,
@@ -119,6 +130,7 @@ export async function createFairVisit(data: {
     createdAt: new Date(),
     updatedAt: new Date(),
   }
+
 
   const result = await db.collection('fairVisits').insertOne(visitDoc)
 

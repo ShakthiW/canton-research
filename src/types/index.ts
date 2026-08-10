@@ -1,6 +1,5 @@
-import type { ObjectId } from 'mongodb'
-
 // ─── Product ─────────────────────────────────────────────────────────────────
+
 
 export type ProductStatus =
   | 'Researching'
@@ -43,6 +42,57 @@ export type RejectionReason =
 
 export type ProductType = 'CANTON_FAIR' | 'DESK_RESEARCH'
 
+export type DiscoverySource =
+  | 'TIKTOK'
+  | 'INSTAGRAM'
+  | 'FACEBOOK'
+  | 'ALIBABA'
+  | 'AMAZON'
+  | 'YOUTUBE'
+  | 'GOOGLE'
+  | 'CANTON_FAIR'
+  | 'PHYSICAL_STORE'
+  | 'FRIEND'
+  | 'OTHER'
+
+export type InitialInterest = 'MUST_INVESTIGATE' | 'INTERESTING' | 'MAYBE' | 'JUST_SAVING'
+
+export type DiscoveryReason =
+  | 'VIRAL_LOOKS'
+  | 'PROFITABLE_LOOKS'
+  | 'NOT_SEEN_LOCALLY'
+  | 'UNUSUAL_INTERESTING'
+  | 'SOLVES_PROBLEM'
+  | 'GOOD_GIFT'
+  | 'CONTENT_POTENTIAL'
+  | 'PEOPLE_BUYING'
+  | 'JUST_CURIOUS'
+
+export interface DiscoveryData {
+  rawProductName: string
+  normalizedProductName?: string
+  source: DiscoverySource
+  sourceUrl?: string
+  reasons: DiscoveryReason[]
+  initialInterest: InitialInterest
+  rawCategory: string
+  normalizedCategory?: string
+  observedPrice?: {
+    amount: number
+    currency: 'USD' | 'CNY' | 'LKR' | 'EUR' | 'GBP' | 'OTHER'
+    context?: 'Retail' | 'Wholesale' | 'Alibaba' | 'Ad' | 'Marketplace' | 'Unknown'
+  }
+  engagement?: {
+    views?: number
+    likes?: number
+    comments?: number
+    shares?: number
+  }
+  discoveryNote?: string
+  discoveredAt: string
+  capturedAt: string
+}
+
 export interface OverseasProviderOffer {
   id: string
   platform: '1688' | 'Alibaba' | 'Taobao' | 'Made-in-China' | 'Other'
@@ -81,6 +131,8 @@ export interface LocalCompetitorListing {
 export interface Product {
   _id: string
   productType?: ProductType
+  rawProductName?: string
+  discovery?: DiscoveryData
   name: string
   description: string
   category: string
@@ -96,6 +148,7 @@ export interface Product {
   socialProofs?: SocialProofEntry[]
   localCompetitors?: LocalCompetitorListing[]
   status: ProductStatus
+
 
 
   // Demand
@@ -288,19 +341,27 @@ export interface FairVisit {
   phase: string
   supplierId: string
   productId: string
+  productName?: string
+  supplierName?: string
   visitDate: string
   notes: string
   priceQuoted: number
   moq: number
+  leadTimeDays?: number
+  customPackagingAvailable?: boolean
+  sampleCostUsd?: number
+  paymentTerms?: string
   photoUrl: string
   contactInfo: string
   interestLevel: BoothInterestLevel
   followUpRequired: boolean
   followUpDate: string
   status: BoothInterestLevel
+  convertedProductId?: string
   createdAt: string
   updatedAt: string
 }
+
 
 // ─── Sample ──────────────────────────────────────────────────────────────────
 

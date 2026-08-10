@@ -1,6 +1,5 @@
 'use server'
 
-import { ObjectId } from 'mongodb'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../mongodb/db'
 import type { BoothInterestLevel, ProductStatus } from '@/types'

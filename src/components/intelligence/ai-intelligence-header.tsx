@@ -24,7 +24,6 @@ interface AIIntelligenceHeaderProps {
 }
 
 export function AIIntelligenceHeader({
-  productId: _productId,
   score,
   recommendation,
   freshness = 'Fresh',

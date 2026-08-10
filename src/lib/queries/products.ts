@@ -172,13 +172,15 @@ export async function getRecentActivity(limit = 10): Promise<Activity[]> {
 
 export async function getSidebarCounts() {
   const db = await getDb()
-  const [products, deskResearch, shortlisted, suppliers, samples] = await Promise.all([
+  const [products, deskResearch, shortlisted, suppliers, samples, validation] = await Promise.all([
     db.collection('products').countDocuments({ status: { $nin: ['Rejected', 'Archived'] } }),
     db.collection('products').countDocuments({ productType: 'DESK_RESEARCH', status: { $nin: ['Rejected', 'Archived'] } }),
     db.collection('products').countDocuments({ status: 'Shortlisted' }),
     db.collection('suppliers').countDocuments(),
     db.collection('samples').countDocuments({ status: { $in: ['Ordered', 'Shipped'] } }),
+    db.collection('validations').countDocuments(),
   ])
-  return { products, deskResearch, shortlisted, suppliers, samples }
+  return { products, deskResearch, shortlisted, suppliers, samples, validation }
 }
+
 

@@ -1,24 +1,19 @@
 'use client'
 
-import { useState, useMemo, useTransition, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import type { ProductListItem, ProductStatus } from '@/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { OpportunityScore } from './OpportunityScore'
 import { StatusBadge } from './StatusBadge'
-import { toast } from 'sonner'
-import { updateProductStatus } from '@/lib/actions/products'
 import {
   RiSearchLine,
   RiGridLine,
   RiListCheck2,
   RiAddLine,
-  RiSparklingLine,
   RiBuildingLine,
-  RiArrowRightLine,
   RiFireLine,
 } from '@remixicon/react'
 import { cn } from '@/lib/utils'
@@ -68,8 +63,7 @@ interface ProductsClientProps {
   total: number
 }
 
-export function ProductsClient({ initialProducts, total }: ProductsClientProps) {
-  const [isPending, startTransition] = useTransition()
+export function ProductsClient({ initialProducts }: ProductsClientProps) {
   const [quickCapture, setQuickCapture] = useState(false)
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
   const [density, setDensity] = useState<Density>('compact')
@@ -84,9 +78,11 @@ export function ProductsClient({ initialProducts, total }: ProductsClientProps) 
   useEffect(() => {
     const saved = localStorage.getItem('cpi_table_density') as Density | null
     if (saved && ['comfortable', 'compact', 'dense'].includes(saved)) {
-      setDensity(saved)
+      const timer = setTimeout(() => setDensity(saved), 0)
+      return () => clearTimeout(timer)
     }
   }, [])
+
 
   function handleDensityChange(newDensity: Density) {
     setDensity(newDensity)
@@ -135,21 +131,6 @@ export function ProductsClient({ initialProducts, total }: ProductsClientProps) 
 
     return items
   }, [initialProducts, search, statusFilter, categoryFilter, sortBy])
-
-  function handleStatusChange(
-    productId: string,
-    newStatus: ProductStatus,
-    currentStatus: string
-  ) {
-    startTransition(async () => {
-      try {
-        await updateProductStatus(productId, newStatus, currentStatus)
-        toast.success(`Moved to ${newStatus}`)
-      } catch {
-        toast.error("Couldn't update status")
-      }
-    })
-  }
 
   return (
     <div className="flex flex-col h-full space-y-4 max-w-7xl mx-auto p-4 sm:p-6 pb-24 md:pb-8">
@@ -300,7 +281,6 @@ export function ProductsClient({ initialProducts, total }: ProductsClientProps) 
           <ProductTable
             products={filtered}
             density={density}
-            onStatusChange={handleStatusChange}
           />
         ) : (
           <ProductGrid products={filtered} />
@@ -317,11 +297,9 @@ export function ProductsClient({ initialProducts, total }: ProductsClientProps) 
 function ProductTable({
   products,
   density,
-  onStatusChange,
 }: {
   products: ProductListItem[]
   density: Density
-  onStatusChange: (id: string, status: ProductStatus, current: string) => void
 }) {
   const paddingClass =
     density === 'dense'
