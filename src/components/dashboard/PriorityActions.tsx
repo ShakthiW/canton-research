@@ -9,9 +9,9 @@ import {
 
 const ACTIONS = [
   {
-    label: 'Canton Fair Walking Mode',
-    desc: 'Rapid 30-second booth entry with price & MOQ',
-    href: '/canton-fair',
+    label: 'Quick Booth & Product Capture',
+    desc: 'Mobile-first multi-product booth recorder',
+    href: '/quick-capture',
     icon: RiFlashlightLine,
     color: 'text-emerald-600 dark:text-emerald-400',
   },

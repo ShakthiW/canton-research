@@ -31,14 +31,13 @@ export function DashboardHero() {
 
       {/* Action shortcuts */}
       <div className="flex items-center gap-2 flex-wrap">
-        <Button
-          size="sm"
-          onClick={() => setCaptureOpen(true)}
-          className="gap-1.5 bg-primary text-primary-foreground font-semibold shadow-xs hover:bg-primary/90"
+        <Link
+          href="/quick-capture"
+          className={cn(buttonVariants({ variant: 'default', size: 'sm' }), 'gap-1.5 font-semibold shadow-xs')}
         >
           <RiAddLine className="size-4" />
-          <span>Capture Product</span>
-        </Button>
+          <span>Quick Capture</span>
+        </Link>
 
         <Link
           href="/canton-fair"

@@ -70,10 +70,9 @@ export function QuickAdd() {
 
   function handleSelect(id: string) {
     setMenuOpen(false)
-    if (id === 'product') setProductOpen(true)
+    if (id === 'product' || id === 'fair') router.push('/quick-capture')
     else if (id === 'supplier') setSupplierOpen(true)
     else if (id === 'research') router.push('/research')
-    else if (id === 'fair') router.push('/canton-fair')
     else if (id === 'sample') router.push('/samples')
     else if (id === 'validation') router.push('/validation')
   }

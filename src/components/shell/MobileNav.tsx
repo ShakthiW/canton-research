@@ -48,19 +48,17 @@ export function MobileNav() {
           ))}
 
           {/* Centre Add button */}
-          <button
-            onClick={() => setCaptureOpen(true)}
+          <Link
+            href="/quick-capture"
             className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs text-primary"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
               <RiAddLine className="size-4" />
             </div>
-            <span className="text-primary">Add</span>
-          </button>
+            <span className="text-primary">Capture</span>
+          </Link>
         </div>
       </nav>
-
-      <QuickCaptureDialog open={captureOpen} onOpenChange={setCaptureOpen} />
     </>
   )
 }
