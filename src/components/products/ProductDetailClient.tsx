@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useTransition, useOptimistic } from 'react'
+import { useState, useTransition, useOptimistic, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { Product, ProductStatus, Supplier } from '@/types'
+import type { Product, ProductStatus, Supplier, Settings } from '@/types'
+import type { ProductIntelligenceState, ResearchRun } from '@/types/intelligence'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -16,6 +17,15 @@ import { toast } from 'sonner'
 import { updateProduct, updateProductStatus, deleteProduct } from '@/lib/actions/products'
 import { formatCurrency } from '@/lib/utils/currency'
 import { calculateLandedCostPerUnit } from '@/lib/utils/calculator'
+import { AIIntelligenceHeader } from '@/components/intelligence/ai-intelligence-header'
+import { LiveResearchDrawer } from '@/components/intelligence/live-research-drawer'
+import { LandedCostWaterfall } from '@/components/intelligence/landed-cost-waterfall'
+import { WhatIfCalculator } from '@/components/intelligence/what-if-calculator'
+import { EvidenceInspector } from '@/components/intelligence/evidence-inspector'
+import { AIChallengeCard } from '@/components/intelligence/ai-challenge-card'
+import { UnitEconomicsBreakdown } from '@/components/intelligence/unit-economics-breakdown'
+import { DemandViralityCard } from '@/components/intelligence/demand-virality-card'
+
 import {
   RiArrowLeftLine,
   RiDeleteBinLine,
@@ -28,22 +38,32 @@ import {
   RiShieldCheckLine,
   RiMoneyDollarCircleLine,
   RiBarChartLine,
+  RiSparklingLine,
 } from '@remixicon/react'
+
 import { cn } from '@/lib/utils'
+
 
 interface ProductDetailClientProps {
   product: Product
   suppliers: Supplier[]
+  settings?: Settings
 }
 
 export function ProductDetailClient({
   product: initialProduct,
   suppliers,
+  settings,
 }: ProductDetailClientProps) {
+
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [product, setProduct] = useState(initialProduct)
   const [optimisticStatus, setOptimisticStatus] = useOptimistic(product.status)
+
+  useEffect(() => {
+    setProduct(initialProduct)
+  }, [initialProduct])
 
   async function handleFieldUpdate(field: string, value: string) {
     const numericFields = [
@@ -69,19 +89,6 @@ export function ProductDetailClient({
       update[field] = value === 'true'
     } else {
       update[field] = value
-    }
-
-    if (
-      [
-        'chinaCost',
-        'packagingCost',
-        'shippingPerUnit',
-        'customsPerUnit',
-        'otherCosts',
-      ].includes(field)
-    ) {
-      const updatedProduct = { ...product, ...update }
-      update.landedCost = calculateLandedCostPerUnit(updatedProduct as Product)
     }
 
     setProduct(prev => ({ ...prev, ...update } as Product))
@@ -127,6 +134,86 @@ export function ProductDetailClient({
     })
   }
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [activeRun, setActiveRun] = useState<ResearchRun | null>(null)
+
+  const intelligenceState = (product as unknown as { intelligence?: ProductIntelligenceState }).intelligence
+  const hasBeenAnalyzed = Boolean(
+    product.isAiAnalyzed ||
+    product.lastResearchedAt ||
+    intelligenceState?.lastResearchedAt
+  )
+
+
+  async function handleTriggerResearch(type: 'QUICK' | 'DEEP' | 'MODULE') {
+    if (isAnalyzing) return
+
+    if (hasBeenAnalyzed && !confirm('This product has already been analyzed by AI. Re-running will update all calculations and findings. Proceed?')) {
+      return
+    }
+
+    setIsAnalyzing(true)
+    setIsDrawerOpen(true)
+    try {
+      const res = await fetch('/api/intelligence/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product._id, type }),
+      })
+      const data = await res.json()
+      if (data.runId) {
+        const interval = setInterval(async () => {
+          const statusRes = await fetch(`/api/intelligence/research?runId=${data.runId}`)
+          const runData = await statusRes.json()
+          setActiveRun(runData)
+          if (runData.status === 'COMPLETED' || runData.status === 'FAILED') {
+            clearInterval(interval)
+            setIsAnalyzing(false)
+
+            // Immediately fetch fresh product document from server and update local state
+            try {
+              const freshRes = await fetch(`/api/products/${product._id}`)
+              if (freshRes.ok) {
+                const freshData = await freshRes.json()
+                if (freshData) {
+                  setProduct(freshData)
+                }
+              }
+            } catch {}
+
+            router.refresh()
+          }
+        }, 2000)
+      }
+    } catch {
+      setIsAnalyzing(false)
+      toast.error('Failed to trigger research run')
+    }
+  }
+
+  async function handleSaveOverride(field: string, value: unknown) {
+    try {
+      const res = await fetch(`/api/intelligence/product/${product._id}/override`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field, value }),
+      })
+      const data = await res.json()
+      if (data.intelligence) {
+        setProduct((prev) => ({
+          ...prev,
+          intelligence: data.intelligence,
+          score: data.intelligence.opportunityScore?.finalScore ?? prev.score,
+          landedCost: data.intelligence.landedCost?.landedCostPerUnitLkr ?? prev.landedCost,
+        } as Product))
+        toast.success('Calculations updated from manual override')
+      }
+    } catch {
+      toast.error('Failed to apply override')
+    }
+  }
+
   const margin =
     product.sellingPrice > 0 && product.landedCost > 0
       ? ((product.sellingPrice - product.landedCost) / product.sellingPrice) * 100
@@ -139,7 +226,15 @@ export function ProductDetailClient({
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-24 md:pb-8 space-y-6">
+      <LiveResearchDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        activeRun={activeRun}
+      />
+
+
       {/* 1. Header & Navigation Dossier */}
+
       <div className="flex items-center justify-between border-b border-border/80 pb-3">
         <div className="flex items-center gap-3">
           <Button
@@ -234,7 +329,7 @@ export function ProductDetailClient({
               <OpportunityScore score={product.score} size="md" />
             </div>
 
-            {/* Tags & Status */}
+            {/* Tags & Status + Analyze Button */}
             <div className="flex items-center gap-3 mt-3 flex-wrap">
               <Select
                 value={optimisticStatus}
@@ -265,6 +360,22 @@ export function ProductDetailClient({
                   #{tag}
                 </span>
               ))}
+
+              <Button
+                size="xs"
+                onClick={() => handleTriggerResearch('QUICK')}
+                disabled={isAnalyzing}
+                className={cn(
+                  "h-7 text-xs gap-1.5 font-semibold shadow sm:ml-auto transition-all",
+                  hasBeenAnalyzed
+                    ? "bg-muted/80 hover:bg-muted text-foreground border border-border"
+                    : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700"
+                )}
+              >
+                <RiSparklingLine className={cn("size-3.5 text-indigo-500", isAnalyzing && "animate-spin")} />
+                {isAnalyzing ? "Analyzing..." : hasBeenAnalyzed ? "✓ Re-Analyze AI" : "✨ Analyze with AI"}
+              </Button>
+
             </div>
           </div>
 
@@ -344,183 +455,81 @@ export function ProductDetailClient({
 
         {/* ─── TAB 1: ECONOMICS FLOW ─── */}
         <TabsContent value="economics" className="space-y-5">
-          {/* Visual Economics Flow Strip */}
-          <div className="rounded-lg border border-border bg-card p-5 space-y-4">
-            <div>
-              <span className="eyebrow">Landed Cost Flow</span>
-              <h2 className="text-base font-bold tracking-tight text-foreground mt-0.5">
-                Unit Economics Breakdown
-              </h2>
-            </div>
+          {/* Landed Cost Waterfall Engine */}
+          <LandedCostWaterfall
+            landedCost={intelligenceState?.landedCost}
+            customs={intelligenceState?.customs}
+          />
 
-            {/* Horizontal Step-by-step Flow */}
-            <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 items-center text-center">
-              <FlowStep
-                label="1. Factory Cost"
-                value={`$${product.chinaCost || 0}`}
-                onEdit={v => handleFieldUpdate('chinaCost', v)}
-                rawVal={product.chinaCost}
-              />
-              <FlowOperator label="+" />
-              <FlowStep
-                label="2. Shipping / Unit"
-                value={`$${product.shippingPerUnit || 0}`}
-                onEdit={v => handleFieldUpdate('shippingPerUnit', v)}
-                rawVal={product.shippingPerUnit}
-              />
-              <FlowOperator label="+" />
-              <FlowStep
-                label="3. Customs Duty"
-                value={`$${product.customsPerUnit || 0}`}
-                onEdit={v => handleFieldUpdate('customsPerUnit', v)}
-                rawVal={product.customsPerUnit}
-              />
-              <FlowOperator label="=" />
-              <div className="p-3 rounded-lg border-2 border-primary/40 bg-primary/5 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                  Landed Cost
-                </span>
-                <p className="text-lg font-black font-mono text-primary mt-0.5">
-                  ${product.landedCost?.toFixed(2) || '0.00'}
-                </p>
-              </div>
-            </div>
+          {/* What-If Product Economics Simulator */}
+          <WhatIfCalculator
+            initialFobPriceUsd={product.chinaCost || 3.5}
+            initialQuantity={product.moq || 100}
+            initialSellingPriceLkr={product.sellingPrice || 4490}
+            initialFreight={intelligenceState?.freight}
+            exchangeRate={settings?.exchangeRates?.USD_TO_LKR || 305}
+          />
 
-            {/* Margin Visualization Bar */}
-            {product.sellingPrice > 0 && product.landedCost > 0 && (
-              <div className="space-y-2 pt-4 border-t border-border">
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-muted-foreground">
-                    Landed Cost: <strong>${product.landedCost.toFixed(2)}</strong>
-                  </span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                    Gross Profit: <strong>${profit.toFixed(2)}</strong> ({margin?.toFixed(0)}% margin)
-                  </span>
-                  <span className="text-foreground font-bold">
-                    Sell Price: <strong>${product.sellingPrice.toFixed(2)}</strong>
-                  </span>
-                </div>
+          {/* Unit Economics Breakdown with USD/LKR Toggle & Exact Math */}
+          <UnitEconomicsBreakdown
+            chinaCostUsd={product.chinaCost}
+            shippingPerUnitUsd={product.shippingPerUnit}
+            customsPerUnitUsd={product.customsPerUnit}
+            landedCostLkr={product.landedCost}
+            landedCost={intelligenceState?.landedCost}
+            customs={intelligenceState?.customs}
+            freight={intelligenceState?.freight}
+            exchangeRate={settings?.exchangeRates?.USD_TO_LKR || 305}
+            onEditField={(field: string, val: string) => handleFieldUpdate(field, val)}
+          />
 
-                {/* Progress bar */}
-                <div className="h-3 rounded-full bg-muted overflow-hidden flex">
-                  <div
-                    className="bg-slate-400 dark:bg-slate-600 transition-all"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        (product.landedCost / product.sellingPrice) * 100
-                      )}%`,
-                    }}
-                    title={`Cost: $${product.landedCost.toFixed(2)}`}
-                  />
-                  <div
-                    className="bg-emerald-500 transition-all"
-                    style={{
-                      width: `${Math.max(
-                        0,
-                        100 - (product.landedCost / product.sellingPrice) * 100
-                      )}%`,
-                    }}
-                    title={`Profit: $${profit.toFixed(2)}`}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Editable Parameters */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <FieldCard
-              label="Packaging Cost"
-              value={product.packagingCost}
-              prefix="$"
-              onSave={v => handleFieldUpdate('packagingCost', v)}
-            />
-            <FieldCard
-              label="Clearing & Other"
-              value={product.otherCosts}
-              prefix="$"
-              onSave={v => handleFieldUpdate('otherCosts', v)}
-            />
-            <FieldCard
-              label="Target Sell Price"
-              value={product.sellingPrice}
-              prefix="$"
-              onSave={v => handleFieldUpdate('sellingPrice', v)}
-            />
-            <FieldCard
-              label="MOQ (Units)"
-              value={product.moq}
-              onSave={v => handleFieldUpdate('moq', v)}
-            />
-          </div>
         </TabsContent>
 
         {/* ─── TAB 2: DEMAND & VIRALITY ─── */}
         <TabsContent value="demand" className="space-y-4">
-          <div className="rounded-lg border border-border bg-card p-5 space-y-4">
-            <div>
-              <span className="eyebrow">Market Signals</span>
-              <h2 className="text-base font-bold tracking-tight text-foreground mt-0.5">
-                Demand & Competition Intelligence
-              </h2>
-            </div>
+          <DemandViralityCard
+            productName={product.name}
+            category={product.category}
+            tiktokViews={product.tiktokViews}
+            growthTrend={product.growthTrend}
+            competitionLevel={product.competitionLevel}
+            competitorCount={product.competitorCount}
+            sriLankanCompetitors={product.sriLankanCompetitors}
+            intelligence={intelligenceState}
+            isAnalyzing={isAnalyzing}
+            onTriggerResearch={() => handleTriggerResearch('QUICK')}
+          />
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <SignalTile
-                label="TikTok Engagement"
-                value={
-                  product.tiktokViews > 0
-                    ? `${(product.tiktokViews / 1_000_000).toFixed(1)}M views`
-                    : 'Not tracked'
-                }
-                sub="Video discovery"
-              />
-              <SignalTile
-                label="Growth Trend"
-                value={product.growthTrend || 'Unknown'}
-                sub="Social momentum"
-                highlight={
-                  product.growthTrend === 'Viral'
-                    ? 'text-rose-600 dark:text-rose-400'
-                    : 'text-foreground'
-                }
-              />
-              <SignalTile
-                label="Local Competition"
-                value={product.competitionLevel || 'Low'}
-                sub="Sri Lanka market"
-              />
-              <SignalTile
-                label="Local Sellers"
-                value={`${product.competitorCount || 0} competitors`}
-                sub={product.marketplacePresence || 'Daraz / Facebook'}
-              />
-            </div>
-
-            <div className="space-y-1.5 pt-3 border-t border-border">
-              <span className="eyebrow">Competitor Field Notes</span>
-              <InlineEdit
-                value={product.sriLankanCompetitors}
-                onSave={v => handleFieldUpdate('sriLankanCompetitors', v)}
-                type="textarea"
-                placeholder="Describe competitors in Sri Lanka, local retail prices, and positioning..."
-              />
-            </div>
-          </div>
         </TabsContent>
 
+
         {/* ─── TAB 3: OPPORTUNITY SCORING ─── */}
-        <TabsContent value="score">
+        <TabsContent value="score" className="space-y-5">
           <ScoreCard
             product={product}
             onUpdate={(field: string, val: number) => handleFieldUpdate(field, String(val))}
           />
+
+          <AIChallengeCard
+            counterArguments={intelligenceState?.aiChallenge?.counterArguments}
+            hiddenCosts={intelligenceState?.aiChallenge?.hiddenCosts}
+            failureModes={intelligenceState?.aiChallenge?.failureModes}
+            verificationChecklist={intelligenceState?.verificationChecklist}
+            hasBeenAnalyzed={hasBeenAnalyzed}
+            isAnalyzing={isAnalyzing}
+            onTriggerResearch={() => handleTriggerResearch('QUICK')}
+          />
+
         </TabsContent>
 
-        {/* ─── TAB 4: NOTES & OVERVIEW ─── */}
+        {/* ─── TAB 4: NOTES & DOSSIER ─── */}
         <TabsContent value="overview" className="space-y-4">
-          <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+          <EvidenceInspector
+            intelligence={intelligenceState}
+            onSaveOverride={handleSaveOverride}
+          />
+
+          <div className="rounded-xl border border-border bg-card p-6 space-y-6 shadow-sm">
             <div>
               <span className="eyebrow">Product Identity</span>
               <h2 className="text-base font-bold tracking-tight text-foreground mt-0.5">
@@ -528,27 +537,43 @@ export function ProductDetailClient({
               </h2>
             </div>
 
+            {/* Product Summary Block Card */}
             <div className="space-y-2">
-              <span className="eyebrow">Product Summary</span>
-              <InlineEdit
-                value={product.description}
-                onSave={v => handleFieldUpdate('description', v)}
-                type="textarea"
-                placeholder="Product description and core value proposition..."
-              />
+              <div className="flex items-center justify-between">
+                <span className="eyebrow text-xs font-bold text-foreground">PRODUCT SUMMARY</span>
+                <span className="text-[10px] text-muted-foreground">Click box to edit</span>
+              </div>
+              <div className="p-4 rounded-xl border border-border bg-background/80 hover:bg-background transition-all min-h-[90px]">
+                <InlineEdit
+                  value={product.description}
+                  onSave={v => handleFieldUpdate('description', v)}
+                  type="textarea"
+                  placeholder="Product description and core value proposition..."
+                  displayClassName="text-sm leading-relaxed text-foreground whitespace-pre-wrap block w-full"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2 pt-3 border-t border-border">
-              <span className="eyebrow">Canton Fair & Field Notes</span>
-              <InlineEdit
-                value={product.notes}
-                onSave={v => handleFieldUpdate('notes', v)}
-                type="textarea"
-                placeholder="Field observations from fair booth or supplier interactions..."
-              />
+            {/* Canton Fair & Field Notes Block Card */}
+            <div className="space-y-2 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <span className="eyebrow text-xs font-bold text-foreground">CANTON FAIR & FIELD NOTES</span>
+                <span className="text-[10px] text-muted-foreground">Click box to edit</span>
+              </div>
+              <div className="p-4 rounded-xl border border-border bg-background/80 hover:bg-background transition-all min-h-[90px]">
+                <InlineEdit
+                  value={product.notes}
+                  onSave={v => handleFieldUpdate('notes', v)}
+                  type="textarea"
+                  placeholder="Field observations from fair booth, booth numbers, or supplier interactions..."
+                  displayClassName="text-sm leading-relaxed text-foreground whitespace-pre-wrap block w-full"
+                />
+              </div>
             </div>
           </div>
+
         </TabsContent>
+
 
         {/* ─── TAB 5: SUPPLIERS ─── */}
         <TabsContent value="suppliers" className="space-y-4">
@@ -630,7 +655,7 @@ function FlowStep({
       <span className="text-[10px] font-semibold text-muted-foreground uppercase">
         {label}
       </span>
-      <p className="text-base font-bold font-mono text-foreground mt-0.5">
+      <div className="text-base font-bold font-mono text-foreground mt-0.5">
         <InlineEdit
           value={rawVal}
           onSave={onEdit}
@@ -639,8 +664,9 @@ function FlowStep({
           placeholder="0.00"
           displayClassName="text-base font-bold font-mono"
         />
-      </p>
+      </div>
     </div>
+
   )
 }
 

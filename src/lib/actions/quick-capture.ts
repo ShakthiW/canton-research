@@ -10,10 +10,16 @@ export interface QuickCaptureProductInput {
   chinaCost?: number
   currency?: string
   moq?: number
+  leadTimeDays?: number
+  samplesAvailable?: 'Free' | 'Paid' | 'No' | 'Not Discussed'
+  sampleCost?: number
+  customizationOptions?: string[]
+  paymentTerms?: string
   interestLevel: BoothInterestLevel
   notes?: string
   imageUrls?: string[]
 }
+
 
 export interface QuickCaptureSessionInput {
   companyName: string
@@ -56,7 +62,10 @@ export async function saveQuickCaptureSession(data: QuickCaptureSessionInput) {
           }
         }
       )
-    } else {
+      const firstProd = data.products[0]
+      const hasCustomLogo = firstProd?.customizationOptions?.some(c => c.toLowerCase().includes('logo') || c.toLowerCase().includes('oem'))
+      const hasCustomBox = firstProd?.customizationOptions?.some(c => c.toLowerCase().includes('box') || c.toLowerCase().includes('pack'))
+
       const sup = await db.collection('suppliers').insertOne({
         companyName: trimmedCompany,
         contactPerson: '',
@@ -71,14 +80,14 @@ export async function saveQuickCaptureSession(data: QuickCaptureSessionInput) {
         website: '',
         supplierType: 'Manufacturer',
         categories: data.categories || [],
-        moq: data.products[0]?.moq || 0,
-        leadTime: '',
-        paymentTerms: '',
-        customization: false,
-        privateLabeling: false,
-        packagingCustomization: false,
-        sampleAvailability: false,
-        sampleCost: 0,
+        moq: firstProd?.moq || 0,
+        leadTime: firstProd?.leadTimeDays ? `${firstProd.leadTimeDays} days` : '',
+        paymentTerms: firstProd?.paymentTerms || '',
+        customization: (firstProd?.customizationOptions && firstProd.customizationOptions.length > 0) || false,
+        privateLabeling: hasCustomLogo || false,
+        packagingCustomization: hasCustomBox || false,
+        sampleAvailability: firstProd?.samplesAvailable === 'Free' || firstProd?.samplesAvailable === 'Paid',
+        sampleCost: firstProd?.sampleCost || 0,
         notes: `Met at Canton Fair Booth ${trimmedBooth}. Business Card: ${data.businessCardUrl ? 'Attached' : 'N/A'}, WeChat: ${data.wechatId || 'N/A'}`,
         scoreQuality: 0, scorePricing: 0, scoreCommunication: 0,
         scoreMoq: 0, scoreCustomization: 0, scoreLeadTime: 0, scoreReliability: 0,
@@ -108,6 +117,17 @@ export async function saveQuickCaptureSession(data: QuickCaptureSessionInput) {
     const primaryCategory = data.categories[0] || 'Other'
     const imageUrl = prodInput.imageUrls?.[0] || data.boothImageUrl || ''
 
+    const noteBlocks = [
+      `Booth: ${trimmedBooth || 'N/A'}`,
+      `Supplier: ${trimmedCompany || 'N/A'}`,
+      `Interest Level: ${prodInput.interestLevel}`,
+      prodInput.leadTimeDays ? `Lead Time: ${prodInput.leadTimeDays} Days` : undefined,
+      prodInput.samplesAvailable ? `Sample: ${prodInput.samplesAvailable}${prodInput.sampleCost ? ` ($${prodInput.sampleCost})` : ''}` : undefined,
+      prodInput.customizationOptions && prodInput.customizationOptions.length > 0 ? `Customizations: ${prodInput.customizationOptions.join(', ')}` : undefined,
+      prodInput.paymentTerms ? `Payment Terms: ${prodInput.paymentTerms}` : undefined,
+      prodInput.notes
+    ].filter(Boolean)
+
     const prodDoc = {
       name: prodInput.name.trim(),
       description: '',
@@ -118,20 +138,16 @@ export async function saveQuickCaptureSession(data: QuickCaptureSessionInput) {
       sourceUrl: '',
       sourcePlatform: 'Canton Fair',
       tags: ['Canton Fair', ...data.categories],
-      notes: [
-        `Booth: ${trimmedBooth || 'N/A'}`,
-        `Supplier: ${trimmedCompany || 'N/A'}`,
-        `Interest Level: ${prodInput.interestLevel}`,
-        prodInput.notes
-      ].filter(Boolean).join('\n'),
+      notes: noteBlocks.join('\n'),
       status,
       tiktokViews: 0, instagramEngagement: 0, googleTrendsScore: 0,
       searchInterest: 0, growthTrend: 'Unknown', viralStatus: false, demandConfidence: 50,
       sriLankanCompetitors: '', competitorCount: 0, localSellingPrice: 0,
       localAvailability: false, marketplacePresence: '', competitionLevel: 'Unknown',
-      chinaCost, moq: prodInput.moq || 0, sampleCost: 0, packagingCost: 0,
+      chinaCost, moq: prodInput.moq || 0, sampleCost: prodInput.sampleCost || 0, packagingCost: 0,
       shippingPerUnit: 0, customsPerUnit: 0, otherCosts: 0, landedCost,
       sellingPrice: 0, currency: prodInput.currency || 'USD',
+
       score: prodInput.interestLevel === 'Shortlisted' ? 85 : 70,
       scoreDemand: 15, scoreMargin: 15, scoreCompetition: 15,
       scoreShipping: 8, scoreBrandability: 8, scoreContent: 8,

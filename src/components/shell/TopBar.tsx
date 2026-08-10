@@ -5,6 +5,7 @@ import { RiSearchLine, RiMoonLine, RiSunLine, RiSparkling2Line } from '@remixico
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { QuickAdd } from './QuickAdd'
+import { NotificationBell } from './NotificationBell'
 import { useCommandCenter } from '@/hooks/useCommandCenter'
 
 const ROUTE_TITLES: Record<string, { eyebrow: string; title: string }> = {
@@ -57,9 +58,10 @@ export function TopBar() {
         </kbd>
       </button>
 
-      {/* Right: Quick Add + Theme Toggle */}
+      {/* Right: Quick Add + Notifications + Theme Toggle */}
       <div className="flex items-center gap-2">
         <QuickAdd />
+        <NotificationBell />
 
         <Button
           variant="ghost"
@@ -75,3 +77,4 @@ export function TopBar() {
     </header>
   )
 }
+

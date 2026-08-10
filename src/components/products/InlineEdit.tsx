@@ -129,16 +129,19 @@ export function InlineEdit({
   }
 
   const displayValue = formatDisplay ? formatDisplay(value) : (value || placeholder)
+  const isBlock = type === 'textarea'
+  const Component = isBlock ? 'div' : 'span'
 
   return (
-    <span
+    <Component
       onClick={startEdit}
       role="button"
       tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && startEdit()}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && startEdit()}
       aria-label={`Edit ${placeholder}`}
       className={cn(
         'inline-edit-field cursor-text min-w-[4ch]',
+        isBlock ? 'block w-full' : 'inline-block',
         !value && 'text-muted-foreground italic',
         displayClassName,
         className
@@ -147,6 +150,8 @@ export function InlineEdit({
       {prefix && value ? <span className="text-muted-foreground">{prefix}</span> : null}
       {displayValue}
       {suffix && value ? <span className="text-muted-foreground">{suffix}</span> : null}
-    </span>
+    </Component>
   )
+
+
 }

@@ -4,9 +4,10 @@ import { getDb } from '../mongodb/db'
 import type { Product, ProductListItem, DashboardStats, PipelineCounts, Activity } from '@/types'
 
 const LIST_PROJECTION = {
-  _id: 1, name: 1, category: 1, status: 1, chinaCost: 1, landedCost: 1,
+  _id: 1, productType: 1, name: 1, category: 1, status: 1, chinaCost: 1, landedCost: 1,
   sellingPrice: 1, moq: 1, score: 1, competitionLevel: 1, currency: 1,
   imageUrl: 1, tags: 1, updatedAt: 1, sourcePlatform: 1, growthTrend: 1, supplierIds: 1,
+  researchHighlights: 1, overseasProviders: 1,
 }
 
 export async function getProducts(opts: {
@@ -19,19 +20,22 @@ export async function getProducts(opts: {
   sort?: string
   source?: string
   competition?: string
+  productType?: string
 } = {}): Promise<{ items: ProductListItem[]; total: number }> {
   const db = await getDb()
   const col = db.collection('products')
 
-  const { page = 1, limit = 50, status, category, minScore, search, sort = 'updatedAt', source, competition } = opts
+  const { page = 1, limit = 50, status, category, minScore, search, sort = 'updatedAt', source, competition, productType } = opts
 
   const filter: Filter<object> = {}
+  if (productType) filter.productType = productType
   if (status) filter.status = status
   if (category) filter.category = category
   if (minScore !== undefined) filter.score = { $gte: minScore }
   if (source) filter.sourcePlatform = source
   if (competition) filter.competitionLevel = competition
   if (search) filter.$text = { $search: search }
+
 
   const sortMap: Record<string, import('mongodb').Sort> = {
     updatedAt: { updatedAt: -1 },
@@ -168,11 +172,13 @@ export async function getRecentActivity(limit = 10): Promise<Activity[]> {
 
 export async function getSidebarCounts() {
   const db = await getDb()
-  const [products, shortlisted, suppliers, samples] = await Promise.all([
+  const [products, deskResearch, shortlisted, suppliers, samples] = await Promise.all([
     db.collection('products').countDocuments({ status: { $nin: ['Rejected', 'Archived'] } }),
+    db.collection('products').countDocuments({ productType: 'DESK_RESEARCH', status: { $nin: ['Rejected', 'Archived'] } }),
     db.collection('products').countDocuments({ status: 'Shortlisted' }),
     db.collection('suppliers').countDocuments(),
     db.collection('samples').countDocuments({ status: { $in: ['Ordered', 'Shipped'] } }),
   ])
-  return { products, shortlisted, suppliers, samples }
+  return { products, deskResearch, shortlisted, suppliers, samples }
 }
+

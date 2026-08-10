@@ -75,4 +75,51 @@ export async function ensureIndexes() {
     { key: { productId: 1 }, background: true },
     { key: { supplierId: 1, productId: 1 }, unique: true, background: true },
   ])
+
+  // Intelligence: Research Runs
+  const researchRuns = db.collection('researchRuns')
+  await researchRuns.createIndexes([
+    { key: { productId: 1 }, background: true },
+    { key: { status: 1 }, background: true },
+    { key: { createdAt: -1 }, background: true },
+  ])
+
+  // Intelligence: Evidence
+  const researchEvidence = db.collection('researchEvidence')
+  await researchEvidence.createIndexes([
+    { key: { productId: 1 }, background: true },
+    { key: { researchRunId: 1 }, background: true },
+    { key: { sourceType: 1 }, background: true },
+  ])
+
+  // Intelligence: Customs Tariffs
+  const customsTariffs = db.collection('customsTariffs')
+  await customsTariffs.createIndexes([
+    { key: { hsCode: 1 }, background: true },
+    { key: { version: 1 }, background: true },
+    { key: { hsCode: 1, version: 1 }, background: true },
+  ])
+
+  // Intelligence: Freight Rates
+  const freightRates = db.collection('freightRates')
+  await freightRates.createIndexes([
+    { key: { origin: 1, destination: 1, mode: 1 }, background: true },
+    { key: { active: 1 }, background: true },
+  ])
+
+  // Intelligence: Competitors
+  const competitors = db.collection('competitors')
+  await competitors.createIndexes([
+    { key: { productId: 1 }, background: true },
+    { key: { lastChecked: -1 }, background: true },
+  ])
+
+  // Intelligence: Market Signals
+  const marketSignals = db.collection('marketSignals')
+  await marketSignals.createIndexes([
+    { key: { productId: 1 }, background: true },
+    { key: { type: 1 }, background: true },
+    { key: { recordedAt: -1 }, background: true },
+  ])
 }
+

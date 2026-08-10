@@ -41,8 +41,46 @@ export type RejectionReason =
   | 'Low demand'
   | 'Other'
 
+export type ProductType = 'CANTON_FAIR' | 'DESK_RESEARCH'
+
+export interface OverseasProviderOffer {
+  id: string
+  platform: '1688' | 'Alibaba' | 'Taobao' | 'Made-in-China' | 'Other'
+  storeName: string
+  storeUrl?: string
+  fobPriceUsd: number
+  fobPriceCny?: number
+  moq: number
+  customizationDetails?: string
+  isPreferred?: boolean
+  notes?: string
+}
+
+export interface SocialProofEntry {
+  id: string
+  platform: 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook' | 'Douyin' | 'Other'
+  postUrl: string
+  viewsCount?: number
+  likesCount?: number
+  commentsCount?: number
+  sharesCount?: number
+  commentFeedbackSummary: string
+  recordedAt: string
+}
+
+export interface LocalCompetitorListing {
+  id: string
+  platform: 'Daraz' | 'Instagram Shop' | 'Facebook Page' | 'Direct Website' | 'Retail Shop'
+  storeName: string
+  productUrl?: string
+  sellingPriceLkr: number
+  stockStatus?: 'In Stock' | 'Out of Stock' | 'Pre-Order'
+  observations?: string
+}
+
 export interface Product {
   _id: string
+  productType?: ProductType
   name: string
   description: string
   category: string
@@ -53,7 +91,12 @@ export interface Product {
   sourcePlatform: SourcePlatform
   tags: string[]
   notes: string
+  researchHighlights?: string
+  overseasProviders?: OverseasProviderOffer[]
+  socialProofs?: SocialProofEntry[]
+  localCompetitors?: LocalCompetitorListing[]
   status: ProductStatus
+
 
   // Demand
   tiktokViews: number
@@ -102,15 +145,19 @@ export interface Product {
   // References
   supplierIds: string[]
   researchItemId: string
-  fairVisitId: string
+  // AI Intelligence Flags
+  isAiAnalyzed?: boolean
+  lastResearchedAt?: string
 
   createdAt: string
   updatedAt: string
 }
 
+
 export type ProductListItem = Pick<
   Product,
   | '_id'
+  | 'productType'
   | 'name'
   | 'category'
   | 'status'
@@ -126,7 +173,9 @@ export type ProductListItem = Pick<
   | 'updatedAt'
   | 'sourcePlatform'
   | 'growthTrend'
+  | 'researchHighlights'
 > & { supplierName?: string }
+
 
 // ─── Supplier ────────────────────────────────────────────────────────────────
 
@@ -339,6 +388,12 @@ export interface Settings {
     CNY_TO_LKR: number
     USD_TO_CNY: number
   }
+  defaultFreightRate?: {
+    provider: string
+    ratePerCbmUsd: number
+    minimumChargeUsd: number
+    mode: 'SEA_LCL' | 'AIR_STANDARD'
+  }
   defaultCurrency: Currency
   categories: string[]
   scoreThresholds: {
@@ -350,6 +405,7 @@ export interface Settings {
   currentFairId: string
   updatedAt: string
 }
+
 
 // ─── SavedFilter ─────────────────────────────────────────────────────────────
 

@@ -24,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 interface SidebarCounts {
   products: number
+  deskResearch?: number
   shortlisted: number
   suppliers: number
   samples: number
@@ -32,10 +33,11 @@ interface SidebarCounts {
 const WORKSPACE_NAV = [
   { label: 'Dashboard', href: '/dashboard', icon: RiDashboardLine, countKey: null },
   { label: 'Products', href: '/products', icon: RiBox3Line, countKey: 'products' },
-  { label: 'Research', href: '/research', icon: RiSearchEyeLine, countKey: null },
+  { label: 'Desk Research', href: '/desk-research', icon: RiSearchEyeLine, countKey: 'deskResearch' },
   { label: 'Suppliers', href: '/suppliers', icon: RiUserLine, countKey: 'suppliers' },
   { label: 'Canton Fair', href: '/canton-fair', icon: RiMapPinLine, countKey: null },
 ]
+
 
 const OPERATIONS_NAV = [
   { label: 'Shortlist', href: '/shortlist', icon: RiStarLine, countKey: 'shortlisted' },
@@ -191,9 +193,11 @@ function NavGroup({
       )}
       <ul className="space-y-0.5">
         {items.map(item => {
-          const count = item.countKey ? counts[item.countKey as keyof SidebarCounts] : null
+          const rawCount = item.countKey ? counts[item.countKey as keyof SidebarCounts] : null
+          const count = rawCount !== undefined && rawCount !== null ? rawCount : null
           const active = isActive(item.href)
           const Icon = item.icon
+
 
           return (
             <li key={item.href}>

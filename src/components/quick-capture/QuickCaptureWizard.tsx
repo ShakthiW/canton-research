@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CategoryMultiSelect } from './CategoryMultiSelect'
 import { InterestLevelSelector } from './InterestLevelSelector'
 import { ImageUploaderPlaceholder } from './ImageUploaderPlaceholder'
+import { SourcingTermsSelector } from './SourcingTermsSelector'
 import { saveQuickCaptureSession, QuickCaptureProductInput } from '@/lib/actions/quick-capture'
+
 import type { BoothInterestLevel } from '@/types'
 import { toast } from 'sonner'
 import {
@@ -325,11 +327,12 @@ export function QuickCaptureWizard() {
                   </Select>
                   <Input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     value={currentProduct.chinaCost ?? ''}
                     onChange={e => setCurrentProduct(prev => ({ ...prev, chinaCost: e.target.value ? parseFloat(e.target.value) : undefined }))}
                     placeholder="0.00"
-                    className="h-11 border-0 rounded-none text-base font-semibold"
+                    className="h-11 border-0 rounded-none text-base font-semibold pl-3.5 pr-3"
                   />
                 </div>
               </div>
@@ -341,6 +344,8 @@ export function QuickCaptureWizard() {
                 <Input
                   id="moq"
                   type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={currentProduct.moq ?? ''}
                   onChange={e => setCurrentProduct(prev => ({ ...prev, moq: e.target.value ? parseInt(e.target.value) : undefined }))}
                   placeholder="500"
@@ -355,6 +360,19 @@ export function QuickCaptureWizard() {
             <InterestLevelSelector
               value={currentProduct.interestLevel}
               onChange={level => setCurrentProduct(prev => ({ ...prev, interestLevel: level }))}
+            />
+          </div>
+
+          {/* Sourcing & Trade Terms (Lead Time, Samples, Customizations, Payment Terms) */}
+          <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-xs">
+            <SourcingTermsSelector
+              leadTimeDays={currentProduct.leadTimeDays}
+              samplesAvailable={currentProduct.samplesAvailable}
+              sampleCost={currentProduct.sampleCost}
+              customizationOptions={currentProduct.customizationOptions}
+              paymentTerms={currentProduct.paymentTerms}
+              onChange={(field: string, value: unknown) => setCurrentProduct(prev => ({ ...prev, [field]: value }))}
+
             />
           </div>
 
@@ -378,11 +396,12 @@ export function QuickCaptureWizard() {
             <Textarea
               value={currentProduct.notes}
               onChange={e => setCurrentProduct(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Packaging quality, lead time, custom logo cost, features..."
+              placeholder="Packaging quality, feature notes, booth observations..."
               rows={3}
               className="resize-none rounded-xl text-sm"
             />
           </div>
+
 
           {/* Supplier Contact & Card Attachments */}
           <div className="bg-card border border-border/80 rounded-2xl p-4 space-y-4 shadow-xs">
@@ -404,7 +423,7 @@ export function QuickCaptureWizard() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="flex flex-col gap-4 pt-1">
               <ImageUploaderPlaceholder
                 label="Business Card"
                 type="card"
@@ -419,6 +438,7 @@ export function QuickCaptureWizard() {
               />
             </div>
           </div>
+
 
           {/* Summary of products already captured for this booth */}
           {capturedProducts.length > 0 && (
