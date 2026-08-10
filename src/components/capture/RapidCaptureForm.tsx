@@ -99,6 +99,7 @@ export function RapidCaptureForm() {
   const [initialInterest, setInitialInterest] = useState<InitialInterest>('INTERESTING')
   const [category, setCategory] = useState('Electronics')
   const [discoveryNote, setDiscoveryNote] = useState('')
+  const [noteImages, setNoteImages] = useState<string[]>([])
 
   // Optional Pricing State
   const [hasPrice, setHasPrice] = useState(false)
@@ -134,36 +135,42 @@ export function RapidCaptureForm() {
 
     startTransition(async () => {
       try {
-        const res = await captureProduct({
-          rawProductName: rawProductName.trim(),
-          imageUrl: images[0],
-          images,
-          source,
-          sourceUrl,
-          reasons,
-          initialInterest,
-          rawCategory: category,
-          observedPrice: hasPrice && observedPrice ? {
-            amount: parseFloat(observedPrice),
-            currency: observedCurrency,
-            context: priceContext,
-          } : undefined,
-          discoveryNote,
-        })
+          const allImages = [...images, ...noteImages]
+          const combinedNotes = noteImages.length > 0
+            ? [discoveryNote, ...noteImages.map(img => `![Attachment](${img})`)].filter(Boolean).join('\n\n')
+            : discoveryNote
 
-        if (res.success) {
-          toast.success(`Product "${rawProductName}" captured!`)
-          setCapturedItem({ id: res.id, name: rawProductName.trim(), source })
+          const res = await captureProduct({
+            rawProductName: rawProductName.trim(),
+            imageUrl: allImages[0],
+            images: allImages,
+            source,
+            sourceUrl,
+            reasons,
+            initialInterest,
+            rawCategory: category,
+            observedPrice: hasPrice && observedPrice ? {
+              amount: parseFloat(observedPrice),
+              currency: observedCurrency,
+              context: priceContext,
+            } : undefined,
+            discoveryNote: combinedNotes,
+          })
 
-          if (batchMode) {
-            // Keep source, category, currency context for next item
-            setRawProductName('')
-            setImages([])
-            setSourceUrl('')
-            setDiscoveryNote('')
-            setHasPrice(false)
-            setObservedPrice('')
-          } else {
+          if (res.success) {
+            toast.success(`Product "${rawProductName}" captured!`)
+            setCapturedItem({ id: res.id, name: rawProductName.trim(), source })
+
+            if (batchMode) {
+              // Keep source, category, currency context for next item
+              setRawProductName('')
+              setImages([])
+              setNoteImages([])
+              setSourceUrl('')
+              setDiscoveryNote('')
+              setHasPrice(false)
+              setObservedPrice('')
+            } else {
             router.push(`/desk-research/${res.id}`)
           }
         }
@@ -435,8 +442,8 @@ export function RapidCaptureForm() {
         </div>
       </div>
 
-      {/* 8. OPTIONAL NOTE */}
-      <div className="bg-card border border-border rounded-2xl p-5 shadow-xs space-y-2">
+      {/* 8. OPTIONAL NOTE & ATTACHMENTS */}
+      <div className="bg-card border border-border rounded-2xl p-5 shadow-xs space-y-3">
         <Label htmlFor="note" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Anything worth remembering? (Optional)
         </Label>
@@ -448,6 +455,15 @@ export function RapidCaptureForm() {
           rows={2}
           className="resize-none text-xs rounded-xl"
         />
+        <div className="pt-2 border-t border-border/50">
+          <ImageUploaderPlaceholder
+            label="Attach Note / Visual Proof Photos"
+            subtitle="Snaps of price tags, local store shelves, or extra notes"
+            multiple={true}
+            images={noteImages}
+            onChange={imgs => setNoteImages(imgs)}
+          />
+        </div>
       </div>
 
       {/* FINAL ACTION BUTTONS */}

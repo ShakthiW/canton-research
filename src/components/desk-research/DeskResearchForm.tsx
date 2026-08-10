@@ -70,6 +70,7 @@ export function DeskResearchForm() {
     researchHighlights: '',
     notes: '',
   })
+  const [observationImages, setObservationImages] = useState<string[]>([])
 
   // 2. Sourcing Terms
   const [sourcingTerms, setSourcingTerms] = useState({
@@ -158,8 +159,10 @@ export function DeskResearchForm() {
           sourceUrl: form.primarySourceUrl,
           sellingPriceLkr: form.sellingPriceLkr ? parseFloat(form.sellingPriceLkr) : 0,
           unitWeightKg: form.unitWeightKg ? parseFloat(form.unitWeightKg) : 0.45,
-          imageUrls: form.imageUrls,
-          researchHighlights: form.researchHighlights,
+          imageUrls: Array.from(new Set([...form.imageUrls, ...observationImages])),
+          researchHighlights: observationImages.length > 0
+            ? [form.researchHighlights, ...observationImages.map(img => `![Observation Image](${img})`)].filter(Boolean).join('\n\n')
+            : form.researchHighlights,
           notes: form.notes,
           leadTimeDays: sourcingTerms.leadTimeDays,
           samplesAvailable: sourcingTerms.samplesAvailable,
@@ -205,6 +208,7 @@ export function DeskResearchForm() {
               researchHighlights: '',
               notes: '',
             })
+            setObservationImages([])
             setProviders([{ platform: '1688', storeName: '', storeUrl: '', fobPriceUsd: '', fobPriceCny: '', moq: '', isPreferred: true }])
             setSocialProofs([{ platform: 'TikTok', postUrl: '', viewsCount: '', likesCount: '', commentsCount: '', commentFeedbackSummary: '' }])
             setLocalCompetitors([{ platform: 'Daraz', storeName: '', productUrl: '', sellingPriceLkr: '', observations: '' }])
@@ -578,7 +582,7 @@ export function DeskResearchForm() {
         </div>
       </div>
 
-      {/* 5. Founder Research Highlights */}
+      {/* 5. Founder Research Highlights & Field Observations */}
       <div className="bg-card border border-border rounded-2xl p-5 space-y-3 shadow-xs">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Founder Research Highlights & Field Observations
@@ -590,6 +594,15 @@ export function DeskResearchForm() {
           rows={3}
           className="resize-none text-sm rounded-xl"
         />
+        <div className="pt-2 border-t border-border/50">
+          <ImageUploaderPlaceholder
+            label="Attach Observations & Notes Photos"
+            subtitle="Photos of local store shelves, competitor ads, packaging photos"
+            multiple={true}
+            images={observationImages}
+            onChange={imgs => setObservationImages(imgs)}
+          />
+        </div>
       </div>
 
       {/* 6. Trade & Sourcing Terms */}

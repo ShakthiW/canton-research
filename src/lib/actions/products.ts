@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../mongodb/db'
 import type { ProductStatus } from '@/types'
+import { deleteFirebaseImages } from '@/lib/utils/storage-cleaner'
 
 export async function createProduct(data: {
   name: string
@@ -166,9 +167,28 @@ export async function updateProductStatus(id: string, status: ProductStatus, pre
 export async function deleteProduct(id: string) {
   if (!ObjectId.isValid(id)) throw new Error('Invalid product ID')
   const db = await getDb()
+
+  const product = await db.collection('products').findOne({ _id: new ObjectId(id) })
+  if (product) {
+    const urlsToDelete: string[] = [
+      product.imageUrl,
+      ...(product.images || []),
+      ...(product.imageUrls || []),
+      product.description,
+      product.notes,
+      product.researchHighlights,
+      product.discoveryNote,
+      JSON.stringify(product),
+    ].filter(Boolean)
+
+    await deleteFirebaseImages(urlsToDelete)
+  }
+
   await db.collection('products').deleteOne({ _id: new ObjectId(id) })
   revalidatePath('/products')
   revalidatePath('/dashboard')
+  revalidatePath('/shortlist')
+  revalidatePath('/desk-research')
   return { success: true }
 }
 
