@@ -103,10 +103,7 @@ export function RapidCaptureForm() {
   const [noteImages, setNoteImages] = useState<string[]>([])
 
   // Bullet Point List State
-  const [bulletPoints, setBulletPoints] = useState<string[]>([
-    'Saw this three times today on US TikTok.',
-    'High potential for Sri Lanka gift market.',
-  ])
+  const [bulletPoints, setBulletPoints] = useState<string[]>([])
   const [newBulletInput, setNewBulletInput] = useState('')
 
   function handleAddBullet() {
@@ -187,6 +184,8 @@ export function RapidCaptureForm() {
               setNoteImages([])
               setSourceUrl('')
               setDiscoveryNote('')
+              setBulletPoints([])
+              setNewBulletInput('')
               setHasPrice(false)
               setObservedPrice('')
             } else {
