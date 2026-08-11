@@ -40,8 +40,8 @@ export async function createValidation(data: {
     costPerAcquisition,
     result: data.result || 'Promising',
     notes: data.notes || '',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   }
 
   const res = await db.collection('validations').insertOne(doc)
@@ -68,5 +68,12 @@ export async function createValidation(data: {
   revalidatePath('/products')
   revalidatePath('/dashboard')
 
-  return { id: res.insertedId.toString() }
+  const id = res.insertedId.toString()
+  return {
+    id,
+    validation: {
+      _id: id,
+      ...doc,
+    },
+  }
 }

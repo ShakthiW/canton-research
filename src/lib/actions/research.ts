@@ -30,12 +30,19 @@ export async function createResearchItem(data: {
     potential: 'Unknown',
     researchScore: 0,
     convertedToProduct: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   }
   const result = await db.collection('researchItems').insertOne(doc)
   revalidatePath('/research')
-  return { id: result.insertedId.toHexString() }
+  const id = result.insertedId.toHexString()
+  return {
+    id,
+    item: {
+      _id: id,
+      ...doc,
+    },
+  }
 }
 
 export async function convertResearchToProduct(researchId: string) {

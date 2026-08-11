@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-y-auto scrollbar-thin">
+        <main className="flex-1 overflow-y-auto scrollbar-thin pt-4 sm:pt-6">
           {children}
         </main>
       </div>

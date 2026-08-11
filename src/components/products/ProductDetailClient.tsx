@@ -23,6 +23,7 @@ import { UnitEconomicsBreakdown } from '@/components/intelligence/unit-economics
 import { DemandViralityCard } from '@/components/intelligence/demand-virality-card'
 
 import { SourcingDossierModal } from './SourcingDossierModal'
+import { FormattedNotes } from '@/components/common/FormattedNotes'
 import {
   RiArrowLeftLine,
   RiDeleteBinLine,
@@ -560,7 +561,7 @@ export function ProductDetailClient({
                 <span className="eyebrow text-xs font-bold text-foreground">CANTON FAIR & FIELD NOTES</span>
                 <span className="text-[10px] text-muted-foreground">Click box to edit</span>
               </div>
-              <div className="p-4 rounded-xl border border-border bg-background/80 hover:bg-background transition-all min-h-[90px]">
+              <div className="p-4 rounded-xl border border-border bg-background/80 hover:bg-background transition-all space-y-3">
                 <InlineEdit
                   value={product.notes}
                   onSave={v => handleFieldUpdate('notes', v)}
@@ -568,6 +569,11 @@ export function ProductDetailClient({
                   placeholder="Field observations from fair booth, booth numbers, or supplier interactions..."
                   displayClassName="text-sm leading-relaxed text-foreground whitespace-pre-wrap block w-full"
                 />
+                {product.notes?.includes('![Attachment]') && (
+                  <div className="pt-3 border-t border-border/60">
+                    <FormattedNotes text={product.notes} additionalImages={product.images} />
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -1,8 +1,8 @@
 import 'server-only'
-import client from './client'
+import clientPromise from './client'
 
 export async function getDb() {
-  await client.connect()
+  const client = await clientPromise
   return client.db('cantonfair')
 }
 

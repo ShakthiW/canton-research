@@ -10,6 +10,7 @@ export default async function ProductsPage({
   const { status, category, sort, search, source, competition, minScore } = params
 
   const { items, total } = await getProducts({
+    excludeProductType: 'DESK_RESEARCH',
     status,
     category,
     sort: sort || 'updatedAt',

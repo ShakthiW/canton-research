@@ -138,6 +138,7 @@ export interface Product {
   category: string
   subcategory: string
   imageUrl: string
+  images?: string[]
   productUrl: string
   sourceUrl: string
   sourcePlatform: SourcePlatform

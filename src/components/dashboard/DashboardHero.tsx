@@ -48,7 +48,7 @@ export function DashboardHero() {
         </Link>
 
         <Link
-          href="/research"
+          href="/desk-research"
           className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}
         >
           <RiSearchEyeLine className="size-4 text-muted-foreground" />

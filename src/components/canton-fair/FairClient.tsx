@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { Fair, FairVisit, Supplier, ProductListItem, FairZone } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,6 +33,8 @@ interface FairClientProps {
 }
 
 export function FairClient({ fairs, visits = [], zones = [], suppliers = [], products = [] }: FairClientProps) {
+  const router = useRouter()
+  const [, startTransition] = useTransition()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedInterest, setSelectedInterest] = useState<string>('ALL')
   const [isZoneModalOpen, setIsZoneModalOpen] = useState(false)
@@ -469,7 +472,12 @@ export function FairClient({ fairs, visits = [], zones = [], suppliers = [], pro
       <FairZoneModal
         isOpen={isZoneModalOpen}
         onClose={() => setIsZoneModalOpen(false)}
-        onCreated={newZone => setLocalZones(prev => [...prev, newZone])}
+        onCreated={newZone => {
+          setLocalZones(prev => [...prev, newZone])
+          startTransition(() => {
+            router.refresh()
+          })
+        }}
       />
     </div>
   )

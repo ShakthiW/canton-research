@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useTransition } from 'react'
+import { useState, useMemo, useTransition, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ResearchItem } from '@/types'
@@ -15,6 +15,7 @@ import { createResearchItem, convertResearchToProduct } from '@/lib/actions/rese
 import { formatDistanceToNow } from '@/lib/utils/time'
 import {
   RiSearchLine,
+  RiSearchEyeLine,
   RiAddLine,
   RiTiktokLine,
   RiInstagramLine,
@@ -55,27 +56,39 @@ interface ResearchClientProps {
 
 export function ResearchClient({ initialItems }: ResearchClientProps) {
   const router = useRouter()
+  const [items, setItems] = useState(initialItems)
   const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [platformFilter, setPlatformFilter] = useState('All')
   const [convertingId, setConvertingId] = useState<string | null>(null)
 
+  useEffect(() => {
+    setItems(initialItems)
+  }, [initialItems])
+
+  function handleAddSuccess(newItem: ResearchItem) {
+    setItems(prev => [newItem, ...prev])
+    startTransition(() => {
+      router.refresh()
+    })
+  }
+
   const filtered = useMemo(() => {
-    let items = [...initialItems]
+    let list = [...items]
     if (search.trim()) {
       const q = search.toLowerCase()
-      items = items.filter(
+      list = list.filter(
         r =>
           r.title.toLowerCase().includes(q) ||
           r.notes?.toLowerCase().includes(q)
       )
     }
     if (platformFilter !== 'All') {
-      items = items.filter(r => r.platform === platformFilter)
+      list = list.filter(r => r.platform === platformFilter)
     }
-    return items
-  }, [initialItems, search, platformFilter])
+    return list
+  }, [items, search, platformFilter])
 
   async function handleConvert(researchId: string) {
     setConvertingId(researchId)
@@ -112,14 +125,31 @@ export function ResearchClient({ initialItems }: ResearchClientProps) {
           </p>
         </div>
 
-        <Button
-          size="sm"
-          className="gap-1.5 bg-primary text-primary-foreground font-semibold shadow-xs"
-          onClick={() => setAddOpen(true)}
-        >
-          <RiAddLine className="size-4" />
-          <span>Log Signal</span>
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link href="/desk-research">
+            <Button variant="outline" size="sm" className="gap-1.5 font-semibold text-xs">
+              <RiSearchEyeLine className="size-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Desk Research Hub</span>
+            </Button>
+          </Link>
+
+          <Link href="/desk-research/new">
+            <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground font-semibold shadow-xs text-xs">
+              <RiAddLine className="size-4" />
+              <span>Log Research Product</span>
+            </Button>
+          </Link>
+
+          <Button
+            size="sm"
+            variant="secondary"
+            className="gap-1.5 font-semibold text-xs"
+            onClick={() => setAddOpen(true)}
+          >
+            <RiFireLine className="size-4 text-rose-500" />
+            <span>Log Viral Signal</span>
+          </Button>
+        </div>
       </div>
 
       {/* 2. Compact Toolbar */}
@@ -264,7 +294,7 @@ export function ResearchClient({ initialItems }: ResearchClientProps) {
       </div>
 
       {/* Add Dialog */}
-      <AddResearchDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddResearchDialog open={addOpen} onOpenChange={setAddOpen} onSuccess={handleAddSuccess} />
     </div>
   )
 }
@@ -272,9 +302,11 @@ export function ResearchClient({ initialItems }: ResearchClientProps) {
 function AddResearchDialog({
   open,
   onOpenChange,
+  onSuccess,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
+  onSuccess?: (item: ResearchItem) => void
 }) {
   const [isPending, startTransition] = useTransition()
   const [form, setForm] = useState({
@@ -294,7 +326,7 @@ function AddResearchDialog({
     if (!form.title.trim()) return
     startTransition(async () => {
       try {
-        await createResearchItem({
+        const res = await createResearchItem({
           title: form.title,
           url: form.url,
           platform: form.platform,
@@ -303,6 +335,9 @@ function AddResearchDialog({
           notes: form.notes,
         })
         toast.success('Research item added ✓')
+        if (res.item) {
+          onSuccess?.(res.item as unknown as ResearchItem)
+        }
         onOpenChange(false)
         setForm({ title: '', url: '', platform: 'TikTok', views: '', likes: '', notes: '' })
       } catch {

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Validation, ProductListItem, ValidationResult } from '@/types'
@@ -31,8 +32,23 @@ interface ValidationClientProps {
   products: ProductListItem[]
 }
 
-export function ValidationClient({ validations, products }: ValidationClientProps) {
+export function ValidationClient({ validations: initialValidations, products }: ValidationClientProps) {
+  const router = useRouter()
+  const [validations, setValidations] = useState(initialValidations)
   const [isAdding, setIsAdding] = useState(false)
+  const [, startTransition] = useTransition()
+
+  useEffect(() => {
+    setValidations(initialValidations)
+  }, [initialValidations])
+
+  function handleAddSuccess(newVal: Validation) {
+    setValidations(prev => [newVal, ...prev])
+    startTransition(() => {
+      router.refresh()
+    })
+  }
+
   const productMap = new Map(products.map(p => [p._id, p]))
 
   const totalSpend = validations.reduce((acc, v) => acc + (v.adSpend || 0), 0)
@@ -172,6 +188,7 @@ export function ValidationClient({ validations, products }: ValidationClientProp
         open={isAdding}
         onOpenChange={setIsAdding}
         products={products}
+        onSuccess={handleAddSuccess}
       />
     </div>
   )
@@ -197,10 +214,12 @@ function AddExperimentModal({
   open,
   onOpenChange,
   products,
+  onSuccess,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   products: ProductListItem[]
+  onSuccess?: (newVal: Validation) => void
 }) {
   const [isPending, startTransition] = useTransition()
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -238,7 +257,7 @@ function AddExperimentModal({
 
     startTransition(async () => {
       try {
-        await createValidation({
+        const res = await createValidation({
           productId: form.productId,
           testMethod: form.testMethod,
           marketingChannel: form.marketingChannel,
@@ -253,6 +272,9 @@ function AddExperimentModal({
           notes: form.notes,
         })
         toast.success('Validation test saved ✓')
+        if (res.validation) {
+          onSuccess?.(res.validation as unknown as Validation)
+        }
         onOpenChange(false)
         setForm({
           productId: '',

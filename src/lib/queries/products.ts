@@ -21,14 +21,19 @@ export async function getProducts(opts: {
   source?: string
   competition?: string
   productType?: string
+  excludeProductType?: string
 } = {}): Promise<{ items: ProductListItem[]; total: number }> {
   const db = await getDb()
   const col = db.collection('products')
 
-  const { page = 1, limit = 50, status, category, minScore, search, sort = 'updatedAt', source, competition, productType } = opts
+  const { page = 1, limit = 50, status, category, minScore, search, sort = 'updatedAt', source, competition, productType, excludeProductType } = opts
 
   const filter: Filter<object> = {}
-  if (productType) filter.productType = productType
+  if (excludeProductType) {
+    filter.productType = { $ne: excludeProductType }
+  } else if (productType) {
+    filter.productType = productType
+  }
   if (status) filter.status = status
   if (category) filter.category = category
   if (minScore !== undefined) filter.score = { $gte: minScore }

@@ -13,20 +13,22 @@ const options = {
 }
 
 let client: MongoClient
+let clientPromise: Promise<MongoClient>
 
 declare global {
    
-  var _mongoClient: MongoClient | undefined
+  var _mongoClientPromise: Promise<MongoClient> | undefined
 }
 
 if (process.env.NODE_ENV === 'development') {
-  // In development, use a global variable to preserve the connection across HMR
-  if (!global._mongoClient) {
-    global._mongoClient = new MongoClient(uri, options)
+  if (!global._mongoClientPromise) {
+    client = new MongoClient(uri, options)
+    global._mongoClientPromise = client.connect()
   }
-  client = global._mongoClient
+  clientPromise = global._mongoClientPromise
 } else {
   client = new MongoClient(uri, options)
+  clientPromise = client.connect()
 }
 
-export default client
+export default clientPromise
