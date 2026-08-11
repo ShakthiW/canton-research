@@ -186,7 +186,7 @@ export function QuickCaptureWizard() {
   }
 
   return (
-    <div className="max-w-xl mx-auto min-h-[calc(100vh-4rem)] flex flex-col pb-24 px-4 pt-2">
+    <div className="max-w-xl mx-auto min-h-[calc(100vh-4rem)] flex flex-col pb-36 md:pb-24 px-4 pt-2">
       {/* Header & Step progress bar */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md pt-3 pb-3 border-b border-border/40 mb-5">
         <div className="flex items-center justify-between mb-2">
@@ -347,7 +347,7 @@ export function QuickCaptureWizard() {
           </div>
 
           {/* Bottom Action for Step 1 */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-md border-t border-border z-20 flex justify-center">
+          <div className="fixed bottom-16 md:bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-md border-t border-border z-20 flex justify-center">
             <div className="max-w-xl w-full">
               <Button
                 type="button"
@@ -552,7 +552,7 @@ export function QuickCaptureWizard() {
           )}
 
           {/* Sticky Bottom Actions Bar (Mobile 1-thumb UX) */}
-          <div className="fixed bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-md border-t border-border z-20 flex justify-center">
+          <div className="fixed bottom-16 md:bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-md border-t border-border z-20 flex justify-center">
             <div className="max-w-xl w-full flex gap-2">
               <Button
                 type="button"

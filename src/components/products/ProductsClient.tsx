@@ -150,7 +150,7 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
           className="inline-flex items-center justify-center h-9 px-4 text-xs font-bold gap-1.5 bg-primary text-primary-foreground rounded-xl shadow-xs hover:bg-primary/90 transition-all shrink-0"
         >
           <RiAddLine className="size-4" />
-          <span>+ Capture Product</span>
+          <span>Capture Product</span>
         </Link>
       </div>
 

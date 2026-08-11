@@ -49,7 +49,7 @@ export function TopBar() {
       {/* Center: Command launcher */}
       <button
         onClick={openCommand}
-        className="flex items-center gap-2.5 rounded border border-border/80 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all duration-100 w-full max-w-sm"
+        className="hidden sm:flex items-center gap-2.5 rounded border border-border/80 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all duration-100 w-full max-w-sm"
       >
         <RiSearchLine className="size-3.5 shrink-0 text-muted-foreground/70" />
         <span className="flex-1 text-left truncate">Search products, suppliers, commands...</span>

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { ResearchItem } from '@/types'
 import { Input } from '@/components/ui/input'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -19,6 +19,8 @@ import {
   RiTiktokLine,
   RiInstagramLine,
   RiYoutubeLine,
+  RiGoogleLine,
+  RiGlobalLine,
   RiExternalLinkLine,
   RiBox3Line,
   RiCheckLine,
@@ -32,6 +34,19 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>
   Instagram: RiInstagramLine,
   YouTube: RiYoutubeLine,
 }
+
+const PLATFORM_PILLS: Array<{
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  color: string
+}> = [
+  { id: 'TikTok', label: 'TikTok', icon: RiTiktokLine, color: 'text-rose-500 bg-rose-50 border-rose-200 dark:bg-rose-950/40 dark:border-rose-900' },
+  { id: 'Instagram', label: 'Instagram', icon: RiInstagramLine, color: 'text-pink-500 bg-pink-50 border-pink-200 dark:bg-pink-950/40 dark:border-pink-900' },
+  { id: 'YouTube', label: 'YouTube', icon: RiYoutubeLine, color: 'text-red-600 bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-900' },
+  { id: 'Google', label: 'Google', icon: RiGoogleLine, color: 'text-blue-500 bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900' },
+  { id: 'Other', label: 'Other', icon: RiGlobalLine, color: 'text-slate-600 bg-slate-50 border-slate-200 dark:bg-slate-900/40 dark:border-slate-800' },
+]
 
 interface ResearchClientProps {
   initialItems: ResearchItem[]
@@ -298,85 +313,140 @@ function AddResearchDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 gap-0">
-        <DialogHeader className="p-4 border-b border-border">
-          <DialogTitle className="text-sm font-bold">Log Viral Signal</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden border-border shadow-2xl rounded-2xl">
+        {/* Modal Header */}
+        <div className="p-5 border-b border-border/80 bg-gradient-to-r from-rose-50/50 via-background to-background dark:from-rose-950/20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900">
+              <RiFireLine className="size-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold text-foreground">Log Viral Signal</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Track trending products & viral content across platforms</p>
+            </div>
+          </div>
+        </div>
 
-        <div className="p-4 space-y-3">
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold">Title / What is trending? *</Label>
+        {/* Modal Body */}
+        <div className="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          {/* Title Input */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Title / What is trending? *
+            </Label>
             <Input
               value={form.title}
               onChange={e => update('title', e.target.value)}
-              placeholder="e.g. Hydrocolloid Acne Patches"
-              className="h-10 text-sm"
+              placeholder="e.g. Hydrocolloid Acne Patches, Sunset Lamp, Oil Sprayer"
+              className="h-11 text-sm font-semibold rounded-xl"
               autoFocus
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Platform</Label>
-              <Select
-                value={form.platform}
-                onValueChange={(v: string | null) => {
-                  if (v) update('platform', v)
-                }}
-              >
-                <SelectTrigger className="h-10 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {['TikTok', 'Instagram', 'YouTube', 'Google', 'Reddit', 'Other'].map(p => (
-                    <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Platform Selector Pills */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Source Platform
+            </Label>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              {PLATFORM_PILLS.map(p => {
+                const Icon = p.icon
+                const isSelected = form.platform === p.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => update('platform', p.id)}
+                    className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all gap-1 ${
+                      isSelected
+                        ? `${p.color} ring-2 ring-primary/40 shadow-xs`
+                        : 'border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <span className="text-[11px]">{p.label}</span>
+                  </button>
+                )
+              })}
             </div>
+          </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">View Count</Label>
+          {/* View Count & Likes Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                View Count
+              </Label>
               <Input
                 type="number"
                 value={form.views}
                 onChange={e => update('views', e.target.value)}
                 placeholder="e.g. 2500000"
-                className="h-10 text-sm"
+                className="h-11 text-xs font-mono rounded-xl"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Likes / Engagement (Optional)
+              </Label>
+              <Input
+                type="number"
+                value={form.likes}
+                onChange={e => update('likes', e.target.value)}
+                placeholder="e.g. 180000"
+                className="h-11 text-xs font-mono rounded-xl"
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold">Source Link</Label>
+          {/* Source Link */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Source Link / Web URL
+            </Label>
             <Input
               value={form.url}
               onChange={e => update('url', e.target.value)}
-              placeholder="https://tiktok.com/@..."
-              className="h-10 text-xs"
+              placeholder="https://www.tiktok.com/@creator/video/..."
+              className="h-11 text-xs font-mono rounded-xl"
             />
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold">Observations</Label>
+          {/* Observations */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Observations & Creator Comments
+            </Label>
             <Textarea
               value={form.notes}
               onChange={e => update('notes', e.target.value)}
-              placeholder="Key creator comments, why this is resonating..."
-              rows={2}
-              className="text-xs resize-none"
+              placeholder="Key creator comments, viral hook used, why this is resonating with viewers..."
+              rows={3}
+              className="text-xs rounded-xl resize-none"
             />
           </div>
         </div>
 
-        <div className="p-3 border-t border-border flex gap-2">
+        {/* Modal Footer */}
+        <div className="p-4 border-t border-border/80 bg-muted/20 flex items-center justify-end gap-2">
           <Button
-            className="flex-1 gap-1.5 bg-primary text-primary-foreground font-semibold"
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="h-11 px-4 text-xs font-bold rounded-xl"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            className="h-11 px-6 text-xs font-bold gap-2 bg-primary text-primary-foreground rounded-xl shadow-md hover:shadow-lg transition-all"
             onClick={handleSave}
             disabled={isPending || !form.title.trim()}
           >
             {isPending ? <RiLoader4Line className="size-4 animate-spin" /> : <RiCheckLine className="size-4" />}
-            Save Signal
+            <span>Save Signal</span>
           </Button>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
         </div>
       </DialogContent>
     </Dialog>
