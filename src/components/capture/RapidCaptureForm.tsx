@@ -1,15 +1,14 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ImageUploaderPlaceholder } from '@/components/quick-capture/ImageUploaderPlaceholder'
-import { FairZoneModal } from '@/components/canton-fair/FairZoneModal'
-import type { DiscoverySource, InitialInterest, DiscoveryReason, FairZone } from '@/types'
-import { fetchFairZonesAction } from '@/lib/actions/fair'
+import type { DiscoverySource, InitialInterest, DiscoveryReason } from '@/types'
+import { getEmbedIframeUrl } from '@/lib/utils/embed'
 import { toast } from 'sonner'
 import {
   RiSparklingLine,
@@ -26,11 +25,11 @@ import {
   RiMoreFill,
   RiFireLine,
   RiStarLine,
-  RiBuilding2Line,
   RiEyeLine,
   RiBookmarkLine,
   RiCheckLine,
   RiAddLine,
+  RiCloseLine,
   RiLoader4Line,
   RiArrowRightLine,
 } from '@remixicon/react'
@@ -92,34 +91,6 @@ export function RapidCaptureForm() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  // Dynamic Fair Zones & Memory State
-  const [zones, setZones] = useState<FairZone[]>([])
-  const [selectedZone, setSelectedZone] = useState<string>('')
-  const [isZoneModalOpen, setIsZoneModalOpen] = useState(false)
-
-  // Load Zones & Memorized Default Zone on Mount
-  useEffect(() => {
-    fetchFairZonesAction().then(res => {
-      setZones(res)
-      const savedZone = localStorage.getItem('canton_selected_zone')
-      if (savedZone && res.some(z => z.hallId === savedZone)) {
-        setSelectedZone(savedZone)
-      } else if (res.length > 0) {
-        setSelectedZone(res[0].hallId)
-      }
-    }).catch(() => {})
-  }, [])
-
-  function handleSelectZone(hallId: string) {
-    if (selectedZone === hallId) {
-      setSelectedZone('')
-      localStorage.removeItem('canton_selected_zone')
-    } else {
-      setSelectedZone(hallId)
-      localStorage.setItem('canton_selected_zone', hallId)
-    }
-  }
-
   // Form State
   const [rawProductName, setRawProductName] = useState('')
   const [images, setImages] = useState<string[]>([])
@@ -130,6 +101,23 @@ export function RapidCaptureForm() {
   const [category, setCategory] = useState('Electronics')
   const [discoveryNote, setDiscoveryNote] = useState('')
   const [noteImages, setNoteImages] = useState<string[]>([])
+
+  // Bullet Point List State
+  const [bulletPoints, setBulletPoints] = useState<string[]>([
+    'Saw this three times today on US TikTok.',
+    'High potential for Sri Lanka gift market.',
+  ])
+  const [newBulletInput, setNewBulletInput] = useState('')
+
+  function handleAddBullet() {
+    if (!newBulletInput.trim()) return
+    setBulletPoints(prev => [...prev, newBulletInput.trim()])
+    setNewBulletInput('')
+  }
+
+  function handleRemoveBullet(index: number) {
+    setBulletPoints(prev => prev.filter((_, i) => i !== index))
+  }
 
   // Optional Pricing State
   const [hasPrice, setHasPrice] = useState(false)
@@ -166,8 +154,10 @@ export function RapidCaptureForm() {
     startTransition(async () => {
       try {
         const allImages = [...images, ...noteImages]
-        const zoneTag = selectedZone ? `[Exhibition Zone: ${selectedZone}]` : ''
-        const combinedNotes = [zoneTag, discoveryNote, ...noteImages.map(img => `![Attachment](${img})`)].filter(Boolean).join('\n\n')
+        const bulletText = bulletPoints.length > 0
+          ? bulletPoints.map(pt => `• ${pt}`).join('\n')
+          : discoveryNote
+        const combinedNotes = [bulletText, ...noteImages.map(img => `![Attachment](${img})`)].filter(Boolean).join('\n\n')
 
           const res = await captureProduct({
             rawProductName: rawProductName.trim(),
@@ -302,81 +292,75 @@ export function RapidCaptureForm() {
           })}
         </div>
 
-        {/* Source URL with Auto Detect */}
-        <div className="pt-2">
+        {/* Source URL with Auto Detect & Video Player Preview */}
+        <div className="pt-2 space-y-2">
           <Label htmlFor="srcUrl" className="text-[11px] font-medium text-muted-foreground">
-            Source Link / Web URL (Auto-detects source on paste)
+            Source Link / TikTok Embed URL (Auto-detects video player)
           </Label>
           <Input
             id="srcUrl"
             value={sourceUrl}
             onChange={e => handleUrlChange(e.target.value)}
-            placeholder="Paste TikTok, Instagram, Alibaba, or Amazon link here..."
-            className="h-11 text-xs rounded-xl mt-1.5 px-3.5"
+            placeholder="Paste TikTok video link (e.g. https://www.tiktok.com/@user/video/123456...)"
+            className="h-11 text-xs rounded-xl px-3.5"
           />
+
+          {getEmbedIframeUrl(sourceUrl) && (
+            <div className="p-3.5 rounded-xl bg-rose-50/50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 space-y-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+                <RiVideoLine className="size-4" />
+                <span>Live TikTok Video Preview</span>
+              </div>
+              <div className="w-full max-w-xs aspect-[9/15] rounded-xl overflow-hidden border border-border bg-black mx-auto shadow-lg">
+                <iframe
+                  src={getEmbedIframeUrl(sourceUrl)!}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="Live TikTok Video Preview"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* EXHIBITION ZONE / HALL SELECTOR (OPTIONAL - WITH MEMORY) */}
+      {/* TIKTOK EMBED CODE / VIDEO BLOCK */}
       <div className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-xs space-y-3.5">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <RiBuilding2Line className="size-4 text-indigo-600 dark:text-indigo-400" />
-              <span>Canton Fair Exhibition Zone / Hall (Optional)</span>
-            </Label>
-            <p className="text-[11px] text-muted-foreground">
-              {selectedZone ? `Memorized hall: "${selectedZone}". Auto-selected for subsequent captures.` : 'Select hall to tag where you found this item at Canton Fair.'}
-            </p>
-          </div>
-
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => setIsZoneModalOpen(true)}
-            className="h-8 px-3 text-xs font-bold gap-1 rounded-xl shrink-0"
-          >
-            <RiAddLine className="size-3.5" />
-            <span>Add Zone</span>
-          </Button>
+        <div className="space-y-1">
+          <Label htmlFor="embedCodeInput" className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <RiVideoLine className="size-4 text-rose-500" />
+            <span>TikTok Embed Code / Video Embed Block (Optional)</span>
+          </Label>
+          <p className="text-[11px] text-muted-foreground">
+            Paste raw TikTok embed HTML snippet (e.g. <code>&lt;blockquote class=&quot;tiktok-embed&quot; cite=&quot;...&quot;&gt;</code>) or video URL.
+          </p>
         </div>
 
-        {zones.length > 0 ? (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {zones.map(z => {
-              const isSelected = selectedZone === z.hallId
-              return (
-                <button
-                  key={z._id}
-                  type="button"
-                  onClick={() => handleSelectZone(z.hallId)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs ring-2 ring-indigo-400/50'
-                      : 'bg-background border-border text-muted-foreground hover:border-indigo-400/50 hover:text-foreground'
-                  }`}
-                >
-                  <span>{z.hallId}</span>
-                  {z.name && z.name !== z.hallId && <span className="opacity-80 font-normal">({z.name})</span>}
-                  {isSelected && <RiCheckLine className="size-3.5" />}
-                </button>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="p-4 rounded-xl bg-muted/30 border border-dashed border-border text-center space-y-2">
-            <p className="text-xs text-muted-foreground">No Exhibition Zones registered yet.</p>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => setIsZoneModalOpen(true)}
-              className="text-xs font-bold gap-1 rounded-xl"
-            >
-              <RiAddLine className="size-3.5" />
-              <span>Quick Create Exhibition Zone</span>
-            </Button>
+        <Textarea
+          id="embedCodeInput"
+          value={sourceUrl}
+          onChange={e => handleUrlChange(e.target.value)}
+          placeholder='Paste TikTok embed code (e.g. <blockquote class="tiktok-embed" cite="https://www.tiktok.com/@vvictorialife/video/7613343166678322463"> ... <script async src="https://www.tiktok.com/embed.js"></script>)'
+          rows={3}
+          className="text-xs font-mono rounded-xl resize-none"
+        />
+
+        {getEmbedIframeUrl(sourceUrl) && (
+          <div className="p-3.5 rounded-xl bg-rose-50/50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 space-y-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+              <RiVideoLine className="size-4" />
+              <span>Live TikTok Video Player Detected</span>
+            </div>
+            <div className="w-full max-w-xs aspect-[9/15] rounded-xl overflow-hidden border border-border bg-black mx-auto shadow-lg">
+              <iframe
+                src={getEmbedIframeUrl(sourceUrl)!}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="Live TikTok Video Player"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -535,20 +519,70 @@ export function RapidCaptureForm() {
         </div>
       </div>
 
-      {/* 8. OPTIONAL NOTE & ATTACHMENTS */}
-      <div className="bg-card border border-border rounded-2xl p-5 shadow-xs space-y-3">
-        <Label htmlFor="note" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Anything worth remembering? (Optional)
-        </Label>
-        <Textarea
-          id="note"
-          value={discoveryNote}
-          onChange={e => setDiscoveryNote(e.target.value)}
-          placeholder="e.g. Saw this three times today on US TikTok. High potential for Sri Lanka gift market."
-          rows={2}
-          className="resize-none text-xs rounded-xl"
-        />
-        <div className="pt-2 border-t border-border/50">
+      {/* 8. BULLET POINTS & ATTACHMENTS */}
+      <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="space-y-1">
+          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+            Anything worth remembering? (Optional)
+          </Label>
+          <p className="text-[11px] text-muted-foreground">
+            Add key observations as bullet points to structure your product notes.
+          </p>
+        </div>
+
+        {/* Bullet Points Items */}
+        {bulletPoints.length > 0 && (
+          <div className="space-y-2">
+            {bulletPoints.map((pt, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/80 text-xs font-medium"
+              >
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <span className="text-primary font-bold text-sm select-none">•</span>
+                  <span className="text-foreground truncate">{pt}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveBullet(idx)}
+                  className="text-muted-foreground hover:text-rose-600 p-1 transition-colors rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                  title="Remove bullet point"
+                >
+                  <RiCloseLine className="size-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add Bullet Point Input Bar */}
+        <div className="flex gap-2">
+          <Input
+            value={newBulletInput}
+            onChange={e => setNewBulletInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleAddBullet()
+              }
+            }}
+            placeholder="e.g. Saw this three times today on US TikTok. High potential for Sri Lanka gift market."
+            className="h-10 text-xs rounded-xl flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddBullet}
+            className="h-10 px-3.5 text-xs font-bold gap-1 rounded-xl shrink-0 border-primary/30 text-primary hover:bg-primary/10"
+          >
+            <RiAddLine className="size-4" />
+            <span>Add Point</span>
+          </Button>
+        </div>
+
+        {/* Attach Note / Visual Proof Photos */}
+        <div className="pt-3 border-t border-border/50">
           <ImageUploaderPlaceholder
             label="Attach Note / Visual Proof Photos"
             subtitle="Snaps of price tags, local store shelves, or extra notes"
@@ -582,16 +616,6 @@ export function RapidCaptureForm() {
           <span>Capture & Add Another</span>
         </Button>
       </div>
-
-      <FairZoneModal
-        isOpen={isZoneModalOpen}
-        onClose={() => setIsZoneModalOpen(false)}
-        onCreated={newZone => {
-          setZones(prev => [...prev, newZone])
-          setSelectedZone(newZone.hallId)
-          localStorage.setItem('canton_selected_zone', newZone.hallId)
-        }}
-      />
     </div>
   )
 }

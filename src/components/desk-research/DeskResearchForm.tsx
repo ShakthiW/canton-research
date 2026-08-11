@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ImageUploaderPlaceholder } from '@/components/quick-capture/ImageUploaderPlaceholder'
 import { SourcingTermsSelector } from '@/components/quick-capture/SourcingTermsSelector'
 import { createDeskResearchProduct } from '@/lib/actions/desk-research'
+import { getEmbedIframeUrl } from '@/lib/utils/embed'
 import { toast } from 'sonner'
 import {
   RiSearchEyeLine,
@@ -497,6 +498,23 @@ export function DeskResearchForm() {
                   className="resize-none text-xs rounded-lg"
                 />
               </div>
+
+              {getEmbedIframeUrl(s.postUrl) && (
+                <div className="p-3 rounded-xl bg-rose-50/50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 space-y-2">
+                  <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 block">
+                    🎬 Live TikTok / Video Embed Player Preview:
+                  </span>
+                  <div className="w-full max-w-xs aspect-[9/15] rounded-xl overflow-hidden border border-border bg-black mx-auto shadow-md">
+                    <iframe
+                      src={getEmbedIframeUrl(s.postUrl)!}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title="Desk Research Video Preview"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

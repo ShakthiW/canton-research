@@ -13,6 +13,7 @@ import { WhatIfCalculator } from '@/components/intelligence/what-if-calculator'
 import { deleteProduct } from '@/lib/actions/products'
 import { formatCurrency } from '@/lib/utils/currency'
 import { toast } from 'sonner'
+import { getEmbedIframeUrl } from '@/lib/utils/embed'
 import {
   RiArrowLeftLine,
   RiSearchEyeLine,
@@ -22,6 +23,7 @@ import {
   RiStore2Line,
   RiDeleteBinLine,
   RiSparklingLine,
+  RiPlayCircleLine,
 } from '@remixicon/react'
 
 interface DeskResearchDetailClientProps {
@@ -35,6 +37,10 @@ export function DeskResearchDetailClient({ product: initialProduct, settings }: 
   const [product] = useState(initialProduct)
 
   const exchangeRate = settings?.exchangeRates?.USD_TO_LKR || 305
+
+  // Video embed detection
+  const videoUrl = product.socialProofs?.[0]?.postUrl || product.discovery?.sourceUrl || product.sourceUrl || product.productUrl
+  const embedIframeUrl = getEmbedIframeUrl(videoUrl)
 
   async function handleDelete() {
     if (!confirm(`Delete research product "${product.name}"?`)) return
@@ -85,7 +91,6 @@ export function DeskResearchDetailClient({ product: initialProduct, settings }: 
                 {product.category}
               </Badge>
               <StatusBadge status={product.status} variant="pill" />
-
             </div>
 
             <h1 className="text-2xl font-bold tracking-tight">{product.name}</h1>
@@ -130,6 +135,63 @@ export function DeskResearchDetailClient({ product: initialProduct, settings }: 
           </div>
         </div>
       </div>
+
+      {/* 🎬 Dedicated TikTok & Viral Video Player Section */}
+      {embedIframeUrl ? (
+        <Card className="border-rose-200/80 dark:border-rose-900/60 bg-gradient-to-br from-rose-50/40 via-background to-background overflow-hidden shadow-sm">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <CardTitle className="text-base flex items-center justify-between">
+              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                <RiVideoLine className="size-5" />
+                <span className="font-bold">Viral Video Proof & TikTok Embed</span>
+              </div>
+              {videoUrl && (
+                <a
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 text-xs font-bold hover:bg-rose-200 transition-colors"
+                >
+                  <span>Watch on Platform</span>
+                  <RiExternalLinkLine className="size-3.5" />
+                </a>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center">
+            <div className="w-full max-w-sm aspect-[9/15] rounded-2xl overflow-hidden border-2 border-rose-200 dark:border-rose-900 shadow-2xl bg-black relative">
+              <iframe
+                src={embedIframeUrl}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="TikTok Viral Video Player"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      ) : videoUrl ? (
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2 text-rose-600 dark:text-rose-400">
+              <RiPlayCircleLine className="size-5" />
+              <span>Viral Video Link</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground truncate max-w-md">{videoUrl}</p>
+            <a
+              href={videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow hover:shadow-md transition-all"
+            >
+              <span>Watch Video</span>
+              <RiExternalLinkLine className="size-4" />
+            </a>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Layer A — Discovery Capture Details */}
       <Card className="border-indigo-200/80 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50/20 via-background to-background">
