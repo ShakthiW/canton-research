@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ImageUploaderPlaceholder } from '@/components/quick-capture/ImageUploaderPlaceholder'
-import type { DiscoverySource, InitialInterest, DiscoveryReason } from '@/types'
+import { FairZoneModal } from '@/components/canton-fair/FairZoneModal'
+import type { DiscoverySource, InitialInterest, DiscoveryReason, FairZone } from '@/types'
+import { fetchFairZonesAction } from '@/lib/actions/fair'
 import { toast } from 'sonner'
 import {
   RiSparklingLine,
@@ -24,7 +26,7 @@ import {
   RiMoreFill,
   RiFireLine,
   RiStarLine,
-
+  RiBuilding2Line,
   RiEyeLine,
   RiBookmarkLine,
   RiCheckLine,
@@ -58,11 +60,11 @@ const DISCOVERY_REASONS: Array<{ id: DiscoveryReason; label: string; emoji: stri
   { id: 'PROFITABLE_LOOKS', label: 'Looks profitable', emoji: '💰' },
   { id: 'NOT_SEEN_LOCALLY', label: "Haven't seen this locally", emoji: '🇱🇰' },
   { id: 'UNUSUAL_INTERESTING', label: 'Interesting / unusual', emoji: '😮' },
-  { id: 'SOLVES_PROBLEM', label: 'Solves a problem', emoji: '🧠' },
-  { id: 'GOOD_GIFT', label: 'Good gift product', emoji: '🎁' },
-  { id: 'CONTENT_POTENTIAL', label: 'Great content potential', emoji: '📱' },
-  { id: 'PEOPLE_BUYING', label: 'Already seeing people buy it', emoji: '🛒' },
-  { id: 'JUST_CURIOUS', label: 'Just curious', emoji: '👀' },
+  { id: 'SOLVES_PROBLEM', label: 'Solves a clear problem', emoji: '💡' },
+  { id: 'GOOD_GIFT', label: 'Good for gifting', emoji: '🎁' },
+  { id: 'CONTENT_POTENTIAL', label: 'High content potential', emoji: '📸' },
+  { id: 'PEOPLE_BUYING', label: 'People actively buying', emoji: '🛒' },
+  { id: 'JUST_CURIOUS', label: 'Just curious', emoji: '🔍' },
 ]
 
 const INTEREST_LEVELS: Array<{
@@ -90,10 +92,38 @@ export function RapidCaptureForm() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
+  // Dynamic Fair Zones & Memory State
+  const [zones, setZones] = useState<FairZone[]>([])
+  const [selectedZone, setSelectedZone] = useState<string>('')
+  const [isZoneModalOpen, setIsZoneModalOpen] = useState(false)
+
+  // Load Zones & Memorized Default Zone on Mount
+  useEffect(() => {
+    fetchFairZonesAction().then(res => {
+      setZones(res)
+      const savedZone = localStorage.getItem('canton_selected_zone')
+      if (savedZone && res.some(z => z.hallId === savedZone)) {
+        setSelectedZone(savedZone)
+      } else if (res.length > 0) {
+        setSelectedZone(res[0].hallId)
+      }
+    }).catch(() => {})
+  }, [])
+
+  function handleSelectZone(hallId: string) {
+    if (selectedZone === hallId) {
+      setSelectedZone('')
+      localStorage.removeItem('canton_selected_zone')
+    } else {
+      setSelectedZone(hallId)
+      localStorage.setItem('canton_selected_zone', hallId)
+    }
+  }
+
   // Form State
   const [rawProductName, setRawProductName] = useState('')
   const [images, setImages] = useState<string[]>([])
-  const [source, setSource] = useState<DiscoverySource>('TIKTOK')
+  const [source, setSource] = useState<DiscoverySource>('CANTON_FAIR')
   const [sourceUrl, setSourceUrl] = useState('')
   const [reasons, setReasons] = useState<DiscoveryReason[]>(['VIRAL_LOOKS'])
   const [initialInterest, setInitialInterest] = useState<InitialInterest>('INTERESTING')
@@ -105,7 +135,7 @@ export function RapidCaptureForm() {
   const [hasPrice, setHasPrice] = useState(false)
   const [observedPrice, setObservedPrice] = useState('')
   const [observedCurrency, setObservedCurrency] = useState<'USD' | 'CNY' | 'LKR' | 'EUR' | 'GBP' | 'OTHER'>('USD')
-  const [priceContext, setPriceContext] = useState<'Retail' | 'Wholesale' | 'Alibaba' | 'Ad' | 'Marketplace' | 'Unknown'>('Retail')
+  const [priceContext, setPriceContext] = useState<'Retail' | 'Wholesale' | 'Alibaba' | 'Ad' | 'Marketplace' | 'Unknown'>('Wholesale')
 
   // Post-Capture Success State
   const [capturedItem, setCapturedItem] = useState<{ id: string; name: string; source: string } | null>(null)
@@ -135,10 +165,9 @@ export function RapidCaptureForm() {
 
     startTransition(async () => {
       try {
-          const allImages = [...images, ...noteImages]
-          const combinedNotes = noteImages.length > 0
-            ? [discoveryNote, ...noteImages.map(img => `![Attachment](${img})`)].filter(Boolean).join('\n\n')
-            : discoveryNote
+        const allImages = [...images, ...noteImages]
+        const zoneTag = selectedZone ? `[Exhibition Zone: ${selectedZone}]` : ''
+        const combinedNotes = [zoneTag, discoveryNote, ...noteImages.map(img => `![Attachment](${img})`)].filter(Boolean).join('\n\n')
 
           const res = await captureProduct({
             rawProductName: rawProductName.trim(),
@@ -286,6 +315,70 @@ export function RapidCaptureForm() {
             className="h-11 text-xs rounded-xl mt-1.5 px-3.5"
           />
         </div>
+      </div>
+
+      {/* EXHIBITION ZONE / HALL SELECTOR (OPTIONAL - WITH MEMORY) */}
+      <div className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-xs space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <RiBuilding2Line className="size-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Canton Fair Exhibition Zone / Hall (Optional)</span>
+            </Label>
+            <p className="text-[11px] text-muted-foreground">
+              {selectedZone ? `Memorized hall: "${selectedZone}". Auto-selected for subsequent captures.` : 'Select hall to tag where you found this item at Canton Fair.'}
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setIsZoneModalOpen(true)}
+            className="h-8 px-3 text-xs font-bold gap-1 rounded-xl shrink-0"
+          >
+            <RiAddLine className="size-3.5" />
+            <span>Add Zone</span>
+          </Button>
+        </div>
+
+        {zones.length > 0 ? (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {zones.map(z => {
+              const isSelected = selectedZone === z.hallId
+              return (
+                <button
+                  key={z._id}
+                  type="button"
+                  onClick={() => handleSelectZone(z.hallId)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs ring-2 ring-indigo-400/50'
+                      : 'bg-background border-border text-muted-foreground hover:border-indigo-400/50 hover:text-foreground'
+                  }`}
+                >
+                  <span>{z.hallId}</span>
+                  {z.name && z.name !== z.hallId && <span className="opacity-80 font-normal">({z.name})</span>}
+                  {isSelected && <RiCheckLine className="size-3.5" />}
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-muted/30 border border-dashed border-border text-center space-y-2">
+            <p className="text-xs text-muted-foreground">No Exhibition Zones registered yet.</p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setIsZoneModalOpen(true)}
+              className="text-xs font-bold gap-1 rounded-xl"
+            >
+              <RiAddLine className="size-3.5" />
+              <span>Quick Create Exhibition Zone</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* 4. WHY DID IT CATCH YOUR ATTENTION? (MULTIPLE SELECTION CHIPS) */}
@@ -475,7 +568,7 @@ export function RapidCaptureForm() {
           className="flex-1 h-12 text-sm font-bold gap-2 rounded-xl shadow-md hover:shadow-lg"
         >
           {isPending ? <RiLoader4Line className="size-4 animate-spin" /> : <RiCheckLine className="size-4" />}
-          <span>+ Capture Product</span>
+          <span>Capture Product</span>
         </Button>
 
         <Button
@@ -489,6 +582,16 @@ export function RapidCaptureForm() {
           <span>Capture & Add Another</span>
         </Button>
       </div>
+
+      <FairZoneModal
+        isOpen={isZoneModalOpen}
+        onClose={() => setIsZoneModalOpen(false)}
+        onCreated={newZone => {
+          setZones(prev => [...prev, newZone])
+          setSelectedZone(newZone.hallId)
+          localStorage.setItem('canton_selected_zone', newZone.hallId)
+        }}
+      />
     </div>
   )
 }

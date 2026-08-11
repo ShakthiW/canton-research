@@ -23,6 +23,7 @@ export interface QuickCaptureProductInput {
 export interface QuickCaptureSessionInput {
   companyName: string
   boothNumber: string
+  hall?: string
   categories: string[]
   boothImageUrl?: string
   businessCardUrl?: string
@@ -71,7 +72,7 @@ export async function saveQuickCaptureSession(data: QuickCaptureSessionInput) {
         country: 'China',
         city: '',
         boothNumber: trimmedBooth,
-        hall: '',
+        hall: data.hall || '',
         email: '',
         phone: '',
         wechat: data.wechatId || '',
@@ -179,7 +180,7 @@ export async function saveQuickCaptureSession(data: QuickCaptureSessionInput) {
   const visitDoc = {
     fairId: 'canton-fair-136',
     boothNumber: trimmedBooth,
-    hall: '',
+    hall: data.hall || '',
     phase: 'Phase 1',
     supplierId,
     productId: createdProductIds[0] || '',

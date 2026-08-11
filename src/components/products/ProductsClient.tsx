@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import type { ProductListItem, ProductStatus } from '@/types'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { OpportunityScore } from './OpportunityScore'
 import { StatusBadge } from './StatusBadge'
@@ -146,14 +145,13 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
           </p>
         </div>
 
-        <Button
-          size="sm"
-          className="gap-1.5 bg-primary text-primary-foreground font-semibold shadow-xs"
-          onClick={() => setQuickCapture(true)}
+        <Link
+          href="/quick-capture"
+          className="inline-flex items-center justify-center h-9 px-4 text-xs font-bold gap-1.5 bg-primary text-primary-foreground rounded-xl shadow-xs hover:bg-primary/90 transition-all shrink-0"
         >
           <RiAddLine className="size-4" />
-          <span>Capture Product</span>
-        </Button>
+          <span>+ Capture Product</span>
+        </Link>
       </div>
 
       {/* 2. Compact One-Line Toolbar */}

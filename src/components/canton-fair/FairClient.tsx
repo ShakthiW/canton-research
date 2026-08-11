@@ -2,15 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import type { Fair, FairVisit, Supplier, ProductListItem } from '@/types'
+import type { Fair, FairVisit, Supplier, ProductListItem, FairZone } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
+import { FairZoneModal } from './FairZoneModal'
 import {
   RiFlashlightLine,
-  RiStore2Line,
   RiStarLine,
   RiArrowRightLine,
   RiBuilding2Line,
@@ -26,20 +26,16 @@ import {
 interface FairClientProps {
   fairs: Fair[]
   visits: FairVisit[]
+  zones?: FairZone[]
   suppliers: Supplier[]
   products: ProductListItem[]
 }
 
-const HALL_ZONES = [
-  { id: 'Hall 1.1', name: 'Electronics & Smart Tech', icon: RiFlashlightLine, color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 border-indigo-200' },
-  { id: 'Hall 2.3', name: 'Home & Kitchen Essentials', icon: RiStore2Line, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 border-emerald-200' },
-  { id: 'Hall 5.2', name: 'Beauty & Personal Care', icon: RiStarLine, color: 'text-pink-600 dark:text-pink-400 bg-pink-50 border-pink-200' },
-  { id: 'Hall 7.3', name: 'Fitness & Outdoor Gear', icon: RiBox3Line, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 border-amber-200' },
-]
-
-export function FairClient({ fairs, visits }: FairClientProps) {
+export function FairClient({ fairs, visits = [], zones = [], suppliers = [], products = [] }: FairClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedInterest, setSelectedInterest] = useState<string>('ALL')
+  const [isZoneModalOpen, setIsZoneModalOpen] = useState(false)
+  const [localZones, setLocalZones] = useState<FairZone[]>(zones)
 
   const activeFair = fairs[0] || {
     _id: 'canton-140',
@@ -55,6 +51,74 @@ export function FairClient({ fairs, visits }: FairClientProps) {
   const avgQuotedPrice = visits.length > 0
     ? visits.reduce((acc, v) => acc + (v.priceQuoted || 0), 0) / visits.length
     : 0
+
+  // ── Dynamic Trade Negotiation Field Guide Parameters ──
+  const allLeadTimes: number[] = [
+    ...visits.map(v => v.leadTimeDays).filter((n): n is number => typeof n === 'number' && n > 0),
+    ...suppliers.map(s => parseInt(s.leadTime || '')).filter(n => !isNaN(n) && n > 0),
+    ...products.map(p => (p as unknown as { leadTimeDays?: number }).leadTimeDays).filter((n): n is number => typeof n === 'number' && n > 0),
+  ]
+
+  let leadTimeText = 'No Data Captured'
+  let leadTimeSubtext = 'Log booth findings to calculate average production lead times.'
+  if (allLeadTimes.length > 0) {
+    const minLead = Math.min(...allLeadTimes)
+    const maxLead = Math.max(...allLeadTimes)
+    leadTimeText = minLead === maxLead ? `${minLead} Days Avg` : `${minLead} – ${maxLead} Days Avg`
+    leadTimeSubtext = `Calculated from ${allLeadTimes.length} recorded quote${allLeadTimes.length > 1 ? 's' : ''}.`
+  }
+
+  // Custom Packaging & OEM
+  const totalOemTracked = visits.length + suppliers.length
+  const oemWillingCount =
+    visits.filter(v => v.customPackagingAvailable).length +
+    suppliers.filter(s => s.customization || s.packagingCustomization || s.privateLabeling).length
+
+  let oemText = 'No Data Captured'
+  let oemSubtext = 'Log supplier findings to track OEM & custom packaging availability.'
+  if (totalOemTracked > 0) {
+    const oemPct = Math.round((oemWillingCount / totalOemTracked) * 100)
+    oemText = `${oemPct}% Factories Willing`
+    oemSubtext = `${oemWillingCount} of ${totalOemTracked} recorded supplier${totalOemTracked > 1 ? 's' : ''} accept OEM/custom packaging.`
+  }
+
+  // Sample Policy
+  const allSampleCosts: number[] = [
+    ...visits.map(v => v.sampleCostUsd).filter((n): n is number => typeof n === 'number' && n > 0),
+    ...suppliers.map(s => s.sampleCost).filter((n): n is number => typeof n === 'number' && n > 0),
+  ]
+
+  let sampleText = 'No Data Captured'
+  let sampleSubtext = 'Log sample quotes to calculate average sample costs.'
+  if (allSampleCosts.length > 0) {
+    const minSample = Math.min(...allSampleCosts)
+    const maxSample = Math.max(...allSampleCosts)
+    sampleText = minSample === maxSample ? `$${minSample} USD / Sample` : `$${minSample} – $${maxSample} USD / Sample`
+    sampleSubtext = `Calculated across ${allSampleCosts.length} sample quote${allSampleCosts.length > 1 ? 's' : ''}.`
+  }
+
+  // Payment Terms
+  const allTerms = [
+    ...visits.map(v => v.paymentTerms).filter(Boolean),
+    ...suppliers.map(s => s.paymentTerms).filter(Boolean),
+  ] as string[]
+
+  let paymentText = 'No Data Captured'
+  let paymentSubtext = 'Log payment terms negotiated at Canton Fair.'
+  if (allTerms.length > 0) {
+    const counts: Record<string, number> = {}
+    allTerms.forEach(t => { counts[t] = (counts[t] || 0) + 1 })
+    const sortedTerms = Object.keys(counts).sort((a, b) => counts[b] - counts[a])
+    if (sortedTerms[0]) {
+      paymentText = sortedTerms[0]
+      paymentSubtext = `Most common terms across ${allTerms.length} booth negotiation${allTerms.length > 1 ? 's' : ''}.`
+    }
+  }
+
+  // ── Dynamic Exhibition Hall Analytics Matrix ──
+  const activeHallsCount = localZones.filter(z =>
+    visits.some(v => v.hall === z.hallId) || suppliers.some(s => s.boothNumber?.includes(z.hallId) || s.hall === z.hallId)
+  ).length
 
   // Filter Visits
   const filteredVisits = visits.filter(v => {
@@ -97,7 +161,7 @@ export function FairClient({ fairs, visits }: FairClientProps) {
             className="inline-flex items-center justify-center h-11 px-5 text-xs font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition-all"
           >
             <RiAddLine className="size-4" />
-            <span>+ Capture Canton Fair Finding</span>
+            <span>Capture Canton Fair Finding</span>
           </Link>
 
           <Button
@@ -166,45 +230,73 @@ export function FairClient({ fairs, visits }: FairClientProps) {
 
       {/* 3. Section 1: Exhibition Hall & Zone Matrix */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
             <RiBuilding2Line className="size-5 text-indigo-600" />
             Exhibition Hall Analytics Matrix
           </h2>
-          <span className="text-xs text-muted-foreground">4 Active Zones Visited</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">{activeHallsCount > 0 ? `${activeHallsCount} Active Zones Visited` : '0 Active Zones Visited'}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsZoneModalOpen(true)}
+              className="h-8 px-3 text-xs font-bold gap-1 rounded-xl border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+            >
+              <RiAddLine className="size-3.5" />
+              <span>Add Zone</span>
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {HALL_ZONES.map(hall => {
-            const Icon = hall.icon
-            const hallVisits = visits.filter(v => v.hall === hall.id)
-            const hallShortlisted = hallVisits.filter(v => v.interestLevel === 'Shortlisted').length
-            return (
-              <Card key={hall.id} className="border-border shadow-xs hover:border-primary/40 transition-all">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className={`p-2.5 rounded-xl border ${hall.color}`}>
-                      <Icon className="size-5" />
+        {localZones.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {localZones.map(zone => {
+              const hallVisits = visits.filter(v => v.hall === zone.hallId)
+              const hallShortlisted = hallVisits.filter(v => v.interestLevel === 'Shortlisted').length
+              return (
+                <Card key={zone._id} className="border-border shadow-xs hover:border-primary/40 transition-all">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="p-2.5 rounded-xl border text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-900">
+                        <RiFlashlightLine className="size-5" />
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-mono font-bold">
+                        {hallVisits.length} Visits
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="text-[10px] font-mono font-bold">
-                      {hallVisits.length} Visits
-                    </Badge>
-                  </div>
 
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground">{hall.id}</h3>
-                    <p className="text-xs text-muted-foreground">{hall.name}</p>
-                  </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground">{zone.hallId}</h3>
+                      <p className="text-xs text-muted-foreground">{zone.name}</p>
+                    </div>
 
-                  <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Shortlisted:</span>
-                    <span className="font-bold text-amber-600 dark:text-amber-400">{hallShortlisted} Factories</span>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                    <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Shortlisted:</span>
+                      <span className="font-bold text-amber-600 dark:text-amber-400">{hallShortlisted} Factories</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-card border border-dashed border-border rounded-2xl space-y-3">
+            <RiBuilding2Line className="size-8 text-muted-foreground/50 mx-auto" />
+            <div>
+              <h3 className="text-sm font-bold text-foreground">No Exhibition Zones Added Yet</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Create your exhibition hall zones to track visits and factory shortlisted statistics per hall.</p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setIsZoneModalOpen(true)}
+              className="text-xs font-bold gap-1.5 rounded-xl mx-auto"
+            >
+              <RiAddLine className="size-4" />
+              <span>Add Your First Exhibition Zone</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* 4. Section 2: Trade Show Sourcing Field Guide & Questions */}
@@ -219,26 +311,26 @@ export function FairClient({ fairs, visits }: FairClientProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
             <div className="p-3.5 rounded-xl bg-background border border-border/80 space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Production Lead Times</span>
-              <p className="font-bold text-foreground text-sm">15 – 25 Days Average</p>
-              <p className="text-[11px] text-muted-foreground">Standard production window quoted at booths.</p>
+              <p className="font-bold text-foreground text-sm">{leadTimeText}</p>
+              <p className="text-[11px] text-muted-foreground">{leadTimeSubtext}</p>
             </div>
 
             <div className="p-3.5 rounded-xl bg-background border border-border/80 space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Custom Packaging & OEM</span>
-              <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">85% Factories Willing</p>
-              <p className="text-[11px] text-muted-foreground">Low MOQ requirements for custom box printing.</p>
+              <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">{oemText}</p>
+              <p className="text-[11px] text-muted-foreground">{oemSubtext}</p>
             </div>
 
             <div className="p-3.5 rounded-xl bg-background border border-border/80 space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Sample Policy</span>
-              <p className="font-bold text-foreground text-sm">$10 – $30 USD / Sample</p>
-              <p className="text-[11px] text-muted-foreground">Sample fee credited towards initial bulk order.</p>
+              <p className="font-bold text-foreground text-sm">{sampleText}</p>
+              <p className="text-[11px] text-muted-foreground">{sampleSubtext}</p>
             </div>
 
             <div className="p-3.5 rounded-xl bg-background border border-border/80 space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Payment Terms</span>
-              <p className="font-bold text-indigo-600 dark:text-indigo-400 text-sm">30% Deposit, 70% T/T</p>
-              <p className="text-[11px] text-muted-foreground">Standard terms negotiated with Canton Fair suppliers.</p>
+              <p className="font-bold text-indigo-600 dark:text-indigo-400 text-sm">{paymentText}</p>
+              <p className="text-[11px] text-muted-foreground">{paymentSubtext}</p>
             </div>
           </div>
         </CardContent>
@@ -373,6 +465,12 @@ export function FairClient({ fairs, visits }: FairClientProps) {
           )}
         </div>
       </div>
+
+      <FairZoneModal
+        isOpen={isZoneModalOpen}
+        onClose={() => setIsZoneModalOpen(false)}
+        onCreated={newZone => setLocalZones(prev => [...prev, newZone])}
+      />
     </div>
   )
 }

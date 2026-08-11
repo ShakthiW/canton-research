@@ -44,7 +44,7 @@ export default async function DeskResearchPage() {
         <Link href="/desk-research/new">
           <Button className="gap-2 font-semibold shadow hover:shadow-md">
             <RiAddLine className="size-4" />
-            <span>+ Log Research Product</span>
+            <span>Log Research Product</span>
           </Button>
         </Link>
       </div>

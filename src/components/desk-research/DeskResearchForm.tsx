@@ -340,7 +340,7 @@ export function DeskResearchForm() {
           </div>
           <Button type="button" variant="outline" size="sm" onClick={addProvider} className="h-8 text-xs gap-1">
             <RiAddLine className="size-3.5" />
-            <span>+ Add Provider</span>
+            <span>Add Provider</span>
           </Button>
         </div>
 
@@ -432,7 +432,7 @@ export function DeskResearchForm() {
           </div>
           <Button type="button" variant="outline" size="sm" onClick={addSocialProof} className="h-8 text-xs gap-1">
             <RiAddLine className="size-3.5" />
-            <span>+ Add Social Link</span>
+            <span>Add Social Link</span>
           </Button>
         </div>
 
@@ -511,7 +511,7 @@ export function DeskResearchForm() {
           </div>
           <Button type="button" variant="outline" size="sm" onClick={addLocalCompetitor} className="h-8 text-xs gap-1">
             <RiAddLine className="size-3.5" />
-            <span>+ Add Local Seller</span>
+            <span>Add Local Seller</span>
           </Button>
         </div>
 

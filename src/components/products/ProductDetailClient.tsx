@@ -576,7 +576,7 @@ export function ProductDetailClient({
                 href="/suppliers"
                 className={cn(buttonVariants({ variant: 'outline', size: 'xs' }), 'text-xs')}
               >
-                + Link Supplier
+                Link Supplier
               </Link>
             </div>
 

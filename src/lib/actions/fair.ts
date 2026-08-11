@@ -151,3 +151,57 @@ export async function createFairVisit(data: {
 
   return { id: result.insertedId.toString() }
 }
+
+export async function createFairZone(data: {
+  hallId: string
+  name: string
+  category?: string
+  color?: string
+}) {
+  if (!data.hallId.trim()) {
+    throw new Error('Hall ID / Number is required (e.g. Hall 1.1)')
+  }
+
+  const db = await getDb()
+  const doc = {
+    hallId: data.hallId.trim(),
+    name: data.name.trim() || data.hallId.trim(),
+    category: data.category || 'General',
+    color: data.color || 'indigo',
+    createdAt: new Date(),
+  }
+
+  const result = await db.collection('fairZones').insertOne(doc)
+
+  revalidatePath('/canton-fair')
+  revalidatePath('/products/capture')
+  revalidatePath('/quick-capture')
+  return { id: result.insertedId.toString(), ...doc }
+}
+
+export async function deleteFairZone(id: string) {
+  const db = await getDb()
+  const { ObjectId } = await import('mongodb')
+  if (ObjectId.isValid(id)) {
+    await db.collection('fairZones').deleteOne({ _id: new ObjectId(id) })
+  }
+  revalidatePath('/canton-fair')
+  revalidatePath('/products/capture')
+  revalidatePath('/quick-capture')
+  return { success: true }
+}
+
+export async function fetchFairZonesAction() {
+  const db = await getDb()
+  const zones = await db.collection('fairZones').find({}).sort({ createdAt: 1 }).toArray()
+  return zones.map(z => ({
+    _id: z._id.toString(),
+    hallId: z.hallId as string,
+    name: z.name as string,
+    category: z.category as string | undefined,
+    color: z.color as string | undefined,
+    createdAt: z.createdAt ? new Date(z.createdAt).toISOString() : undefined,
+  }))
+}
+
+

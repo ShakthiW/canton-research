@@ -1,12 +1,13 @@
-import { getFairs, getFairVisits } from '@/lib/queries/fair'
+import { getFairs, getFairVisits, getFairZones } from '@/lib/queries/fair'
 import { getSuppliers } from '@/lib/queries/suppliers'
 import { getProducts } from '@/lib/queries/products'
 import { FairClient } from '@/components/canton-fair/FairClient'
 
 export default async function CantonFairPage() {
-  const [fairs, visits, { items: suppliers }, { items: products }] = await Promise.all([
+  const [fairs, visits, zones, { items: suppliers }, { items: products }] = await Promise.all([
     getFairs(),
     getFairVisits(),
+    getFairZones(),
     getSuppliers({ limit: 100 }),
     getProducts({ limit: 100, source: 'Canton Fair' }),
   ])
@@ -15,6 +16,7 @@ export default async function CantonFairPage() {
     <FairClient
       fairs={fairs}
       visits={visits}
+      zones={zones}
       suppliers={suppliers}
       products={products}
     />

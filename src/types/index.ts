@@ -362,6 +362,16 @@ export interface FairVisit {
   updatedAt: string
 }
 
+export interface FairZone {
+  _id: string
+  hallId: string
+  name: string
+  category?: string
+  icon?: string
+  color?: string
+  createdAt?: string
+}
+
 
 // ─── Sample ──────────────────────────────────────────────────────────────────
 

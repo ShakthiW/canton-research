@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,11 +11,15 @@ import { CategoryMultiSelect } from './CategoryMultiSelect'
 import { InterestLevelSelector } from './InterestLevelSelector'
 import { ImageUploaderPlaceholder } from './ImageUploaderPlaceholder'
 import { SourcingTermsSelector } from './SourcingTermsSelector'
+import { FairZoneModal } from '@/components/canton-fair/FairZoneModal'
 import { saveQuickCaptureSession, QuickCaptureProductInput } from '@/lib/actions/quick-capture'
+import { fetchFairZonesAction } from '@/lib/actions/fair'
+import type { FairZone } from '@/types'
 
 import { toast } from 'sonner'
 import {
   RiBuildingLine,
+  RiBuilding2Line,
   RiMapPinLine,
   RiArrowRightLine,
   RiAddLine,
@@ -32,6 +36,34 @@ export function QuickCaptureWizard() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState<'booth' | 'product' | 'success'>('booth')
+
+  // Dynamic Fair Zones & Memory State
+  const [zones, setZones] = useState<FairZone[]>([])
+  const [selectedZone, setSelectedZone] = useState<string>('')
+  const [isZoneModalOpen, setIsZoneModalOpen] = useState(false)
+
+  // Load Zones & Memorized Default Zone on Mount
+  useEffect(() => {
+    fetchFairZonesAction().then(res => {
+      setZones(res)
+      const savedZone = localStorage.getItem('canton_selected_zone')
+      if (savedZone && res.some(z => z.hallId === savedZone)) {
+        setSelectedZone(savedZone)
+      } else if (res.length > 0) {
+        setSelectedZone(res[0].hallId)
+      }
+    }).catch(() => {})
+  }, [])
+
+  function handleSelectZone(hallId: string) {
+    if (selectedZone === hallId) {
+      setSelectedZone('')
+      localStorage.removeItem('canton_selected_zone')
+    } else {
+      setSelectedZone(hallId)
+      localStorage.setItem('canton_selected_zone', hallId)
+    }
+  }
 
   // Step 1: Booth / Company state
   const [booth, setBooth] = useState({
@@ -110,6 +142,7 @@ export function QuickCaptureWizard() {
         const res = await saveQuickCaptureSession({
           companyName: booth.companyName,
           boothNumber: booth.boothNumber,
+          hall: selectedZone,
           categories: booth.categories,
           boothImageUrl: booth.boothImages[0] || '',
           businessCardUrl: booth.businessCardImages[0] || '',
@@ -228,6 +261,70 @@ export function QuickCaptureWizard() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Exhibition Zone / Hall Selector (Optional - With Memory) */}
+          <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <RiBuilding2Line className="size-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Exhibition Zone / Hall (Optional)</span>
+                </Label>
+                <p className="text-[11px] text-muted-foreground">
+                  {selectedZone ? `Memorized hall: "${selectedZone}". Auto-selected for subsequent booth entries.` : 'Select hall to tag this supplier.'}
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setIsZoneModalOpen(true)}
+                className="h-8 px-2.5 text-xs font-bold gap-1 rounded-xl shrink-0"
+              >
+                <RiAddLine className="size-3.5" />
+                <span>Add Zone</span>
+              </Button>
+            </div>
+
+            {zones.length > 0 ? (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {zones.map(z => {
+                  const isSelected = selectedZone === z.hallId
+                  return (
+                    <button
+                      key={z._id}
+                      type="button"
+                      onClick={() => handleSelectZone(z.hallId)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs ring-2 ring-indigo-400/50'
+                          : 'bg-background border-border text-muted-foreground hover:border-indigo-400/50 hover:text-foreground'
+                      }`}
+                    >
+                      <span>{z.hallId}</span>
+                      {z.name && z.name !== z.hallId && <span className="opacity-80 font-normal">({z.name})</span>}
+                      {isSelected && <RiCheckLine className="size-3.5" />}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-muted/30 border border-dashed border-border text-center space-y-2">
+                <p className="text-xs text-muted-foreground">No Exhibition Zones registered yet.</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsZoneModalOpen(true)}
+                  className="text-xs font-bold gap-1 rounded-xl"
+                >
+                  <RiAddLine className="size-3.5" />
+                  <span>Quick Create Zone</span>
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Categories Multi-Select */}
@@ -465,7 +562,7 @@ export function QuickCaptureWizard() {
                 className="flex-1 h-13 text-xs sm:text-sm font-semibold gap-1.5 rounded-xl border-primary/40 text-primary hover:bg-primary/10 active:scale-[0.99]"
               >
                 <RiAddLine className="size-4 shrink-0" />
-                <span>+ Add Product</span>
+                <span>Add Product</span>
               </Button>
 
               <Button
@@ -527,6 +624,16 @@ export function QuickCaptureWizard() {
           </div>
         </div>
       )}
+
+      <FairZoneModal
+        isOpen={isZoneModalOpen}
+        onClose={() => setIsZoneModalOpen(false)}
+        onCreated={newZone => {
+          setZones(prev => [...prev, newZone])
+          setSelectedZone(newZone.hallId)
+          localStorage.setItem('canton_selected_zone', newZone.hallId)
+        }}
+      />
     </div>
   )
 }
