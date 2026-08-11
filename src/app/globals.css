@@ -198,3 +198,27 @@
 .keyboard-focus:focus-visible {
   @apply outline-2 outline-offset-1 outline-ring;
 }
+
+/* Print Styles for Executive Sourcing Dossier */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #dossier-print-area, #dossier-print-area * {
+    visibility: visible;
+  }
+  #dossier-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px;
+    margin: 0;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+}

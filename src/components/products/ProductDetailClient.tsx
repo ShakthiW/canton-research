@@ -22,6 +22,7 @@ import { AIChallengeCard } from '@/components/intelligence/ai-challenge-card'
 import { UnitEconomicsBreakdown } from '@/components/intelligence/unit-economics-breakdown'
 import { DemandViralityCard } from '@/components/intelligence/demand-virality-card'
 
+import { SourcingDossierModal } from './SourcingDossierModal'
 import {
   RiArrowLeftLine,
   RiDeleteBinLine,
@@ -29,6 +30,7 @@ import {
   RiFireLine,
   RiBuilding4Line,
   RiSparklingLine,
+  RiPrinterLine,
 } from '@remixicon/react'
 
 import { cn } from '@/lib/utils'
@@ -128,6 +130,7 @@ export function ProductDetailClient({
 
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isDossierOpen, setIsDossierOpen] = useState(false)
   const [activeRun, setActiveRun] = useState<ResearchRun | null>(null)
 
   const intelligenceState = (product as unknown as { intelligence?: ProductIntelligenceState }).intelligence
@@ -243,6 +246,16 @@ export function ProductDetailClient({
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => setIsDossierOpen(true)}
+            className="gap-1.5 text-xs font-bold rounded-xl border-primary/30 text-primary hover:bg-primary/10"
+          >
+            <RiPrinterLine className="size-3.5" />
+            <span>Export Dossier (PDF)</span>
+          </Button>
+
           {product.sourceUrl && (
             <a
               href={product.sourceUrl}
@@ -622,6 +635,22 @@ export function ProductDetailClient({
           </div>
         </TabsContent>
       </Tabs>
+
+      <SourcingDossierModal
+        open={isDossierOpen}
+        onOpenChange={setIsDossierOpen}
+        product={product}
+        supplierInfo={
+          suppliers[0]
+            ? {
+                companyName: suppliers[0].companyName,
+                boothNumber: suppliers[0].boothNumber,
+                wechatId: suppliers[0].wechat,
+                contactInfo: suppliers[0].phone,
+              }
+            : undefined
+        }
+      />
     </div>
   )
 }
